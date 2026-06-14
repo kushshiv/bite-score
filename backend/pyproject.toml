@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "bitescore-backend"
+version = "0.1.0"
+description = "BiteScore API - food trust and transparency platform"
+authors = ["BiteScore"]
+readme = "README.md"
+packages = [{ include = "app" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.0"
+uvicorn = { extras = ["standard"], version = "^0.32.0" }
+sqlalchemy = "^2.0.36"
+alembic = "^1.14.0"
+psycopg2-binary = "^2.9.10"
+pydantic = "^2.10.0"
+pydantic-settings = "^2.6.0"
+python-jose = { extras = ["cryptography"], version = "^3.3.0" }
+bcrypt = "^4.2.0"
+python-multipart = "^0.0.17"
+pillow = "^11.0.0"
+email-validator = "^2.2.0"
+
+[tool.poetry.scripts]
+seed = "app.seed.seed:main"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.8.0"
+pytest = "^8.3.0"
+httpx = "^0.28.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

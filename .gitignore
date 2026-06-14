@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.nuxt/
+.output/
+.pytest_cache/
+
+# Environment
+.env
+.env.local
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+
+# Logs
+*.log
