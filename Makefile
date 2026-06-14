@@ -70,7 +70,7 @@ dev:
 
 test: test-backend test-frontend
 
-test-backend: install-backend
+test-backend: install-backend up
 	cd backend && poetry run pytest -v
 
 test-frontend: install-frontend

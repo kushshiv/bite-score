@@ -74,6 +74,7 @@ Use the following unless there is a very strong reason not to:
 - TypeScript
 - Tailwind CSS
 - Python (FastAPI) on backend with pydantic
+- For backend use poetry
 - PostgreSQL/ RDS on cloud
 - Something free for for authentication
 - Uploadthing or S3-compatible file uploads for images

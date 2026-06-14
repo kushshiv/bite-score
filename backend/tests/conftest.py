@@ -3,12 +3,10 @@ from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
 from app.core.security import get_password_hash
-from app.db.session import Base, get_db
+from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.models.business import Business
 from app.models.category import Category
@@ -18,18 +16,11 @@ from app.models.review import Review
 from app.models.structured_score import StructuredScore
 from app.models.user import User
 
-TEST_DATABASE_URL = "sqlite://"
-
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
-    engine = create_engine(
-        TEST_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
     Base.metadata.create_all(bind=engine)
-    session = sessionmaker(autocommit=False, autoflush=False, bind=engine)()
+    session = SessionLocal()
     try:
         yield session
     finally:

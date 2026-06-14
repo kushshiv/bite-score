@@ -165,7 +165,12 @@ cd backend && poetry install --with dev
 - `test_api_businesses.py` — list, search, business profiles
 - `test_api_reviews.py` — review submission, billing mock
 
-Uses an in-memory SQLite database (no Docker required for tests).
+Uses PostgreSQL (same as local dev and production). Start Postgres first:
+
+```bash
+make up           # docker compose postgres
+make test-backend
+```
 
 ### Frontend tests (`frontend/tests/`)
 
@@ -373,7 +378,7 @@ Workflow file: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
 **Triggers:** push and pull requests to `main` or `master`.
 
-**Requirements:** No secrets needed for tests (backend uses in-memory SQLite; frontend uses unit tests only).
+**Requirements:** Postgres must be running for backend tests. CI provisions PostgreSQL 16 automatically. No secrets required for the test suite.
 
 To run the same checks locally before pushing:
 
