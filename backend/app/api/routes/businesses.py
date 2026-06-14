@@ -20,7 +20,6 @@ from app.schemas import (
     LocationOut,
     ReviewOut,
     ScoreBreakdown,
-    StructuredScoreOut,
 )
 from app.services.scoring import compute_business_score
 

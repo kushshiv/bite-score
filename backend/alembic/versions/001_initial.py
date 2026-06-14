@@ -7,10 +7,6 @@ Create Date: 2026-06-14
 
 from typing import Sequence, Union
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.dialects import postgresql
-
 revision: str = "001"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None

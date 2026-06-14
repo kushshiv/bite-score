@@ -1,4 +1,3 @@
-from tests.conftest import auth_header
 
 
 def test_list_businesses_empty(client):

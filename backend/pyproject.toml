@@ -33,6 +33,17 @@ httpx = "^0.28.0"
 testpaths = ["tests"]
 pythonpath = ["."]
 
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"app/models/*.py" = ["F821"]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

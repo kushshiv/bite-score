@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.core.deps import get_current_user, require_roles
 from app.db.session import get_db
-from app.models.business import Business
 from app.models.enums import UserRole
 from app.models.evidence_upload import EvidenceUpload
 from app.models.review import Review
