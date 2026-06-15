@@ -2,6 +2,8 @@ import random
 import re
 from datetime import date, timedelta
 
+from sqlalchemy.orm import joinedload
+
 from app.core.security import get_password_hash
 from app.db.session import Base, SessionLocal, engine
 from app.models import (
@@ -22,6 +24,7 @@ from app.models.enums import (
     UserRole,
     VisitType,
 )
+from app.services.covers import cover_for_category
 
 DEMO_PASSWORD = "Demo1234!"
 
@@ -86,12 +89,26 @@ def backfill_coordinates(db):
         print(f"Backfilled coordinates for {updated} locations.")
 
 
+def backfill_cover_images(db):
+    updated = 0
+    for business in db.query(Business).options(joinedload(Business.category)).filter(
+        Business.cover_image_url.is_(None)
+    ).all():
+        slug = business.category.slug if business.category else None
+        business.cover_image_url = cover_for_category(slug)
+        updated += 1
+    if updated:
+        db.commit()
+        print(f"Backfilled cover images for {updated} businesses.")
+
+
 def seed():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
     if db.query(User).filter(User.email == "admin@bitescore.demo").first():
         backfill_coordinates(db)
+        backfill_cover_images(db)
         print("Seed data already exists. Skipping.")
         db.close()
         return
@@ -131,6 +148,7 @@ def seed():
             category_id=cat.id,
             business_type=btype,
             description=f"{name} is a community-reviewed food business focused on hygiene transparency.",
+            cover_image_url=cover_for_category(cat.slug),
             claimed_by_id=users[1].id if i == 0 else None,
         )
         db.add(business)

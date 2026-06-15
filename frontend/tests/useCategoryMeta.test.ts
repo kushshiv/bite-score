@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { CATEGORIES, useCategoryMeta } from '../composables/useCategoryMeta'
+import {
+  CATEGORIES,
+  CATEGORY_COVER_IMAGES,
+  DEFAULT_COVER_IMAGE,
+  useCategoryMeta,
+} from '../composables/useCategoryMeta'
 
 describe('useCategoryMeta', () => {
   it('returns metadata for a known category slug', () => {
@@ -16,7 +21,7 @@ describe('useCategoryMeta', () => {
     expect(meta.slug).toBe('default')
   })
 
-  it('includes all discovery categories', () => {
+  it('includes all discovery cuisines used in the UI', () => {
     expect(CATEGORIES.map((c) => c.slug)).toEqual([
       'indian',
       'italian',
@@ -29,5 +34,12 @@ describe('useCategoryMeta', () => {
       'mediterranean',
       'fast-casual',
     ])
+  })
+
+  it('maps every cuisine to a stock cover photo', () => {
+    for (const category of CATEGORIES) {
+      expect(CATEGORY_COVER_IMAGES[category.slug]).toMatch(/^https:\/\//)
+    }
+    expect(DEFAULT_COVER_IMAGE).toMatch(/^https:\/\//)
   })
 })

@@ -82,11 +82,26 @@ class BusinessListItem(BaseModel):
     business_type: BusinessType
     category: CategoryOut | None
     location: LocationOut | None
+    cover_image_url: str | None = None
     overall_score: float = 0
     overall_percent: float = 0
     review_count: int = 0
     distance_km: float | None = None
     badges: list[BadgeOut] = []
+
+
+class CategoryFacet(BaseModel):
+    slug: str
+    name: str
+    count: int
+
+
+class BusinessFacets(BaseModel):
+    total: int
+    high_trust: int
+    verified: int
+    safe_to_eat: int
+    categories: list[CategoryFacet]
 
 
 class BusinessDetail(BusinessListItem):
