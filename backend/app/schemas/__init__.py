@@ -84,6 +84,8 @@ class BusinessListItem(BaseModel):
     location: LocationOut | None
     overall_score: float = 0
     overall_percent: float = 0
+    review_count: int = 0
+    distance_km: float | None = None
     badges: list[BadgeOut] = []
 
 

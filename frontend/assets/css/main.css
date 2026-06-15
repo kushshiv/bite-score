@@ -24,4 +24,11 @@
   .label {
     @apply mb-1 block text-sm font-medium text-slate-700;
   }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }

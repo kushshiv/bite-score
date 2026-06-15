@@ -26,9 +26,9 @@ from app.models.enums import (
 DEMO_PASSWORD = "Demo1234!"
 
 CITIES = [
-    {"city": "Berlin", "country": "Germany"},
-    {"city": "Mumbai", "country": "India"},
-    {"city": "Austin", "country": "USA"},
+    {"city": "Berlin", "country": "Germany", "lat": 52.52, "lng": 13.405},
+    {"city": "Mumbai", "country": "India", "lat": 19.076, "lng": 72.8777},
+    {"city": "Austin", "country": "USA", "lat": 30.2672, "lng": -97.7431},
 ]
 
 CATEGORIES = [
@@ -72,11 +72,26 @@ def slugify(name: str) -> str:
     return slug
 
 
+def backfill_coordinates(db):
+    city_coords = {c["city"]: c for c in CITIES}
+    updated = 0
+    for loc in db.query(Location).filter(Location.latitude.is_(None)).all():
+        coords = city_coords.get(loc.city)
+        if coords:
+            loc.latitude = round(coords["lat"] + random.uniform(-0.04, 0.04), 6)
+            loc.longitude = round(coords["lng"] + random.uniform(-0.04, 0.04), 6)
+            updated += 1
+    if updated:
+        db.commit()
+        print(f"Backfilled coordinates for {updated} locations.")
+
+
 def seed():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
     if db.query(User).filter(User.email == "admin@bitescore.demo").first():
+        backfill_coordinates(db)
         print("Seed data already exists. Skipping.")
         db.close()
         return
@@ -126,6 +141,8 @@ def seed():
                 address=f"{100 + i} Main Street",
                 city=city_data["city"],
                 country=city_data["country"],
+                latitude=round(city_data["lat"] + random.uniform(-0.04, 0.04), 6),
+                longitude=round(city_data["lng"] + random.uniform(-0.04, 0.04), 6),
             )
         )
         businesses.append(business)

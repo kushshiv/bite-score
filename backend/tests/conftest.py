@@ -19,6 +19,7 @@ from app.models.user import User
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     session = SessionLocal()
     try:
@@ -92,6 +93,8 @@ def sample_business(db_session: Session) -> Business:
             address="1 Test Street",
             city="Berlin",
             country="Germany",
+            latitude=52.52,
+            longitude=13.405,
         )
     )
     db_session.commit()
@@ -126,6 +129,47 @@ def sample_review(db_session: Session, test_user: User, sample_business: Busines
     db_session.commit()
     db_session.refresh(review)
     return review
+
+
+@pytest.fixture
+def geo_businesses(db_session: Session) -> dict[str, Business]:
+    """Three Berlin businesses at different distances from the city center."""
+    category = Category(name="Geo Cafe", slug="geo-cafe")
+    db_session.add(category)
+    db_session.flush()
+
+    configs = [
+        ("Near Kitchen", "near-kitchen", 52.521, 13.406),
+        ("Mid Kitchen", "mid-kitchen", 52.55, 13.405),
+        ("Far Kitchen", "far-kitchen", 52.62, 13.405),
+    ]
+    businesses: dict[str, Business] = {}
+    for name, slug, lat, lng in configs:
+        business = Business(
+            name=name,
+            slug=slug,
+            category_id=category.id,
+            business_type=BusinessType.RESTAURANT,
+            description=f"{name} for geo tests",
+        )
+        db_session.add(business)
+        db_session.flush()
+        db_session.add(
+            Location(
+                business_id=business.id,
+                address=f"{slug} street",
+                city="Berlin",
+                country="Germany",
+                latitude=lat,
+                longitude=lng,
+            )
+        )
+        businesses[slug] = business
+
+    db_session.commit()
+    for business in businesses.values():
+        db_session.refresh(business)
+    return businesses
 
 
 def auth_header(client: TestClient, email: str, password: str) -> dict[str, str]:

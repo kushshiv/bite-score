@@ -21,6 +21,7 @@ from app.schemas import (
     ReviewOut,
     ScoreBreakdown,
 )
+from app.services.geo import haversine_km
 from app.services.scoring import compute_business_score
 
 router = APIRouter(prefix="/businesses", tags=["businesses"])
@@ -37,6 +38,7 @@ def _business_to_list_item(db: Session, business: Business) -> BusinessListItem:
         location=LocationOut.model_validate(business.location) if business.location else None,
         overall_score=score_data["overall"],
         overall_percent=score_data["overall_percent"],
+        review_count=score_data["review_count"],
         badges=[BadgeOut.model_validate(b) for b in business.badges],
     )
 
@@ -50,6 +52,10 @@ def list_businesses(
     min_score: float | None = None,
     verified_only: bool = False,
     high_trust: bool = False,
+    near_lat: float | None = None,
+    near_lng: float | None = None,
+    radius_km: float = Query(default=25.0, le=100),
+    sort: str = Query(default="score", pattern="^(score|nearby)$"),
     limit: int = Query(default=20, le=100),
     offset: int = 0,
 ):
@@ -73,13 +79,34 @@ def list_businesses(
     if verified_only:
         query = query.join(Business.badges).filter(VerificationBadge.badge_type == BadgeType.VERIFIED)
 
-    businesses = query.offset(offset).limit(limit).all()
+    use_geo = near_lat is not None and near_lng is not None
+    if use_geo:
+        businesses = query.limit(100).all()
+    else:
+        businesses = query.offset(offset).limit(limit).all()
     items = [_business_to_list_item(db, b) for b in businesses]
 
     if min_score is not None:
         items = [i for i in items if i.overall_score >= min_score]
     if high_trust:
         items = [i for i in items if i.overall_score >= 4.0]
+
+    if use_geo:
+        nearby: list[BusinessListItem] = []
+        for item in items:
+            loc = item.location
+            if loc and loc.latitude is not None and loc.longitude is not None:
+                dist = haversine_km(near_lat, near_lng, loc.latitude, loc.longitude)
+                if dist <= radius_km:
+                    nearby.append(item.model_copy(update={"distance_km": round(dist, 1)}))
+        items = nearby
+        if sort == "nearby":
+            items.sort(key=lambda i: i.distance_km or 9999)
+        else:
+            items.sort(key=lambda i: i.overall_percent, reverse=True)
+        return items[:limit]
+    if sort == "score":
+        items.sort(key=lambda i: i.overall_percent, reverse=True)
 
     return items
 

@@ -1,11 +1,11 @@
 <template>
   <div class="mx-auto max-w-4xl px-4 py-10 sm:px-6">
-    <h1 class="text-2xl font-bold text-slate-900">Your dashboard</h1>
-    <p class="mt-2 text-slate-500">Your submitted community observations.</p>
+    <h1 class="text-2xl font-bold text-slate-900">My reviews</h1>
+    <p class="mt-2 text-slate-500">Places you've reviewed and their status.</p>
 
     <div v-if="pending" class="mt-8 text-slate-500">Loading...</div>
     <div v-else-if="!reviews?.length" class="mt-8 card text-center text-slate-500">
-      <p>You haven't submitted any observations yet.</p>
+      <p>You haven't reviewed any places yet.</p>
       <NuxtLink to="/search" class="btn-primary mt-4 inline-block">Find a place</NuxtLink>
     </div>
     <div v-else class="mt-8 space-y-4">

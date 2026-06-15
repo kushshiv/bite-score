@@ -1,6 +1,24 @@
 <template>
   <div v-if="business" class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-    <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+    <!-- Verdict banner -->
+    <div class="rounded-xl border p-4 sm:p-5" :class="verdict.bannerClass">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm font-medium uppercase tracking-wide text-slate-500">Our take</p>
+          <p class="mt-1 text-2xl font-bold text-slate-900">{{ verdict.label }}</p>
+          <p class="mt-1 text-sm text-slate-600">{{ verdict.description }}</p>
+        </div>
+        <div class="flex shrink-0 items-center gap-4">
+          <ScoreBadge :score="business.score.overall_percent" size="lg" />
+          <div class="text-sm text-slate-600">
+            <p class="font-medium">{{ business.score.review_count }} diner review{{ business.score.review_count === 1 ? '' : 's' }}</p>
+            <p class="text-slate-500">Hygiene score</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
       <div>
         <div class="flex flex-wrap items-center gap-3">
           <h1 class="text-3xl font-bold text-slate-900">{{ business.name }}</h1>
@@ -12,10 +30,6 @@
           <span v-if="business.category"> · {{ business.category.name }}</span>
         </p>
         <p v-if="business.description" class="mt-4 max-w-2xl text-slate-600">{{ business.description }}</p>
-      </div>
-      <div class="text-center">
-        <ScoreBadge :score="business.score.overall_percent" />
-        <p class="mt-2 text-sm text-slate-500">{{ business.score.review_count }} community observations</p>
       </div>
     </div>
 
@@ -34,8 +48,8 @@
       <div class="lg:col-span-2 space-y-8">
         <!-- Score breakdown -->
         <section class="card">
-          <h2 class="text-lg font-semibold text-slate-900">Score breakdown</h2>
-          <p class="mt-2 text-sm text-slate-500">{{ business.score.methodology }}</p>
+          <h2 class="text-lg font-semibold text-slate-900">What diners noticed</h2>
+          <p class="mt-2 text-sm text-slate-500">Hygiene breakdown from recent reviews.</p>
           <div class="mt-6">
             <ScoreBreakdown :breakdown="business.score.breakdown" />
           </div>
@@ -44,16 +58,16 @@
         <!-- Reviews -->
         <section class="card">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-slate-900">Recent community observations</h2>
+            <h2 class="text-lg font-semibold text-slate-900">Recent reviews</h2>
             <NuxtLink
               v-if="auth.isLoggedIn"
               :to="`/submit-review/${business.id}`"
               class="btn-primary text-sm"
             >
-              Submit observation
+              Write a review
             </NuxtLink>
           </div>
-          <div v-if="!reviews?.length" class="mt-4 text-sm text-slate-500">No reviews yet.</div>
+          <div v-if="!reviews?.length" class="mt-4 text-sm text-slate-500">No reviews yet — be the first to share your visit.</div>
           <div v-else class="mt-6 space-y-6">
             <div v-for="review in reviews" :key="review.id" class="border-t border-slate-100 pt-6 first:border-0 first:pt-0">
               <div class="flex items-center justify-between">
@@ -71,20 +85,21 @@
 
       <div class="space-y-6">
         <section class="card">
-          <h3 class="font-semibold text-slate-900">Actions</h3>
+          <h3 class="font-semibold text-slate-900">Share your visit</h3>
           <div class="mt-4 space-y-3">
             <NuxtLink v-if="auth.isLoggedIn" :to="`/submit-review/${business.id}`" class="btn-primary block w-full text-center">
-              Submit observation
+              Write a review
             </NuxtLink>
-            <button v-if="auth.isLoggedIn" class="btn-secondary w-full" @click="showFlag = true">Report concern</button>
-            <NuxtLink to="/moderation" class="block text-center text-sm text-slate-500 hover:text-slate-700">
-              Business correction / appeal
+            <button v-else class="btn-primary w-full" @click="openAuth('register')">Sign up to review</button>
+            <button v-if="auth.isLoggedIn" class="btn-secondary w-full" @click="showFlag = true">Report a problem</button>
+            <NuxtLink to="/moderation" class="block text-center text-xs text-slate-400 hover:text-slate-600">
+              Owner? Request a correction
             </NuxtLink>
           </div>
         </section>
 
         <section v-if="evidence?.length" class="card">
-          <h3 class="font-semibold text-slate-900">Evidence gallery</h3>
+          <h3 class="font-semibold text-slate-900">Photos from diners</h3>
           <div class="mt-4 grid grid-cols-2 gap-2">
             <img
               v-for="e in evidence"
@@ -118,6 +133,7 @@
 const route = useRoute()
 const api = useApi()
 const auth = useAuthStore()
+const { open: openAuth } = useAuthModal()
 const showFlag = ref(false)
 const flagReason = ref('')
 
@@ -127,9 +143,13 @@ const { data: business } = await useAsyncData(`business-${slug}`, () => api.get(
 const { data: reviews } = await useAsyncData(`reviews-${slug}`, () => api.get(`/businesses/${slug}/reviews`))
 const { data: evidence } = await useAsyncData(`evidence-${slug}`, () => api.get(`/businesses/${slug}/evidence`))
 
+const verdict = computed(() =>
+  business.value ? useTrustVerdict(business.value.score.overall_percent) : useTrustVerdict(0)
+)
+
 useSeoMeta({
   title: () => business.value ? `${business.value.name} — BiteScore` : 'Business — BiteScore',
-  description: () => business.value?.description || 'Food trust profile on BiteScore',
+  description: () => business.value?.description || 'Check hygiene scores and diner reviews on BiteScore',
   ogTitle: () => business.value ? `${business.value.name} — BiteScore` : 'BiteScore',
 })
 

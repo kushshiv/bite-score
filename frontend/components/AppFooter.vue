@@ -7,13 +7,15 @@
             <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-trust-600 text-sm font-bold text-white">BS</div>
             <span class="font-semibold text-slate-900">BiteScore</span>
           </div>
-          <p class="mt-3 text-sm text-slate-500">Food trust infrastructure for health-conscious consumers.</p>
+          <p class="mt-3 text-sm text-slate-500">
+            Know before you eat — find safe restaurants and street food near you.
+          </p>
         </div>
         <div>
-          <h4 class="text-sm font-semibold text-slate-900">Product</h4>
+          <h4 class="text-sm font-semibold text-slate-900">Explore</h4>
           <ul class="mt-3 space-y-2 text-sm text-slate-500">
             <li><NuxtLink to="/search">Search places</NuxtLink></li>
-            <li><NuxtLink to="/how-it-works">How it works</NuxtLink></li>
+            <li><NuxtLink to="/how-it-works">How scoring works</NuxtLink></li>
             <li><NuxtLink to="/about">About</NuxtLink></li>
           </ul>
         </div>
@@ -26,12 +28,15 @@
           </ul>
         </div>
         <div>
-          <h4 class="text-sm font-semibold text-slate-900">For businesses</h4>
-          <p class="mt-3 text-sm text-slate-500">Claim your profile and respond to community observations.</p>
+          <h4 class="text-sm font-semibold text-slate-900">Restaurant owners</h4>
+          <p class="mt-3 text-sm text-slate-500">
+            <NuxtLink to="/business-dashboard" class="text-trust-600 hover:text-trust-700">Claim your profile</NuxtLink>
+            to respond to reviews.
+          </p>
         </div>
       </div>
       <p class="mt-8 border-t border-slate-100 pt-8 text-center text-xs text-slate-400">
-        BiteScore scores are platform-derived community signals, not government certifications.
+        Scores are based on diner reviews, not government inspections.
       </p>
     </div>
   </footer>

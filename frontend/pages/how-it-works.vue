@@ -1,39 +1,42 @@
 <template>
   <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
     <h1 class="text-3xl font-bold text-slate-900">How BiteScore works</h1>
-    <div class="mt-8 space-y-8">
+    <p class="mt-3 text-slate-600">
+      We help you answer one question: <strong>is it safe to eat here?</strong>
+    </p>
+    <div class="mt-8 space-y-6">
       <section class="card">
-        <h2 class="text-lg font-semibold text-slate-900">1. Structured observations</h2>
+        <h2 class="text-lg font-semibold text-slate-900">1. Diners share what they saw</h2>
         <p class="mt-2 text-slate-600">
-          Community members submit structured reviews across hygiene dimensions — not unstructured rants.
-          Users confirm their observations are honest before submission.
+          After eating somewhere, people leave structured reviews about cleanliness, food handling,
+          staff hygiene, and more — not just "food was good."
         </p>
       </section>
       <section class="card">
-        <h2 class="text-lg font-semibold text-slate-900">2. Transparent scoring</h2>
-        <p class="mt-2 text-slate-600">Scores are weighted across:</p>
+        <h2 class="text-lg font-semibold text-slate-900">2. We turn that into a hygiene score</h2>
+        <p class="mt-2 text-slate-600">Each place gets a score from 0–100 based on:</p>
         <ul class="mt-3 list-inside list-disc space-y-1 text-slate-600">
-          <li>30% hygiene / cleanliness</li>
+          <li>30% cleanliness</li>
           <li>20% food handling</li>
           <li>15% staff hygiene</li>
           <li>10% packaging</li>
-          <li>10% water safety confidence</li>
-          <li>10% evidence credibility</li>
-          <li>5% consistency weighting</li>
+          <li>10% water safety</li>
+          <li>10% photo evidence quality</li>
+          <li>5% consistency across reviews</li>
         </ul>
       </section>
       <section class="card">
-        <h2 class="text-lg font-semibold text-slate-900">3. Trust indicators</h2>
+        <h2 class="text-lg font-semibold text-slate-900">3. You get a clear answer</h2>
         <p class="mt-2 text-slate-600">
-          We surface confidence signals like low sample size, verified evidence, owner-claimed profiles,
-          moderation review status, and recent improvement trends.
+          Scores of 80+ mean <strong>safe to eat</strong>. 60–79 means <strong>use caution</strong>.
+          Below 60 means <strong>low confidence</strong>. We also flag when there aren't enough reviews yet.
         </p>
       </section>
-      <section class="card">
-        <h2 class="text-lg font-semibold text-slate-900">4. Business participation</h2>
+      <section class="card border-dashed">
+        <h2 class="text-lg font-semibold text-slate-900">For restaurant owners</h2>
         <p class="mt-2 text-slate-600">
-          Business owners can claim profiles, respond to observations, upload certifications,
-          and request verification through our moderation process.
+          You can claim your profile, respond to reviews, and request verification.
+          <NuxtLink to="/business-dashboard" class="text-trust-600 hover:text-trust-700">Learn more →</NuxtLink>
         </p>
       </section>
     </div>
@@ -43,6 +46,6 @@
 <script setup lang="ts">
 useSeoMeta({
   title: 'How it works — BiteScore',
-  description: 'Understand how BiteScore calculates food trust scores from structured community observations.',
+  description: 'See how BiteScore helps you check restaurant hygiene before you eat.',
 })
 </script>
