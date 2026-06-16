@@ -36,7 +36,9 @@ def build_business_query(
     if category:
         query = query.join(Business.category).filter(Category.slug == category)
     if verified_only:
-        query = query.join(Business.badges).filter(VerificationBadge.badge_type == BadgeType.VERIFIED)
+        query = query.join(Business.badges).filter(
+            VerificationBadge.badge_type == BadgeType.VERIFIED
+        )
     return query
 
 

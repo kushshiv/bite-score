@@ -102,7 +102,9 @@ def list_businesses(
             radius_km=radius_km,
         )
     else:
-        query = build_business_query(db, q=q, city=city, category=category, verified_only=verified_only)
+        query = build_business_query(
+            db, q=q, city=city, category=category, verified_only=verified_only
+        )
         businesses = query.offset(offset).limit(limit).all()
         items = [business_to_list_item(db, b) for b in businesses]
 

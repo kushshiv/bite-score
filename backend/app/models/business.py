@@ -14,10 +14,14 @@ class Business(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     slug: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"))
-    business_type: Mapped[BusinessType] = mapped_column(Enum(BusinessType), default=BusinessType.RESTAURANT)
+    business_type: Mapped[BusinessType] = mapped_column(
+        Enum(BusinessType), default=BusinessType.RESTAURANT
+    )
     description: Mapped[str | None] = mapped_column(Text)
     cover_image_url: Mapped[str | None] = mapped_column(String(500))
-    status: Mapped[BusinessStatus] = mapped_column(Enum(BusinessStatus), default=BusinessStatus.ACTIVE)
+    status: Mapped[BusinessStatus] = mapped_column(
+        Enum(BusinessStatus), default=BusinessStatus.ACTIVE
+    )
     claimed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

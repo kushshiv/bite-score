@@ -11,7 +11,9 @@ CATEGORY_COVER_IMAGES: dict[str, str] = {
     "fast-casual": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=500&fit=crop",
 }
 
-DEFAULT_COVER_IMAGE = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=500&fit=crop"
+DEFAULT_COVER_IMAGE = (
+    "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=500&fit=crop"
+)
 
 
 def cover_for_category(slug: str | None) -> str:

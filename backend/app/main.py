@@ -9,7 +9,9 @@ from app.config import settings
 from app.db.session import Base, engine
 from app.models import *  # noqa: F401, F403
 
-app = FastAPI(title="BiteScore API", version="0.1.0", description="Food trust and transparency platform")
+app = FastAPI(
+    title="BiteScore API", version="0.1.0", description="Food trust and transparency platform"
+)
 
 app.add_middleware(
     CORSMiddleware,

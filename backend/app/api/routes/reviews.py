@@ -19,7 +19,9 @@ def create_review(
     user=Depends(get_current_user),
 ):
     if not data.consent_given:
-        raise HTTPException(status_code=400, detail="Consent is required before submitting a review")
+        raise HTTPException(
+            status_code=400, detail="Consent is required before submitting a review"
+        )
 
     business = db.query(Business).filter(Business.id == data.business_id).first()
     if not business:

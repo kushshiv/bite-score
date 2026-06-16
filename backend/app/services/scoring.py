@@ -124,7 +124,10 @@ def compute_trust_indicators(
 
     verified_evidence = (
         db.query(EvidenceUpload)
-        .filter(EvidenceUpload.business_id == business.id if business else None, EvidenceUpload.verified == True)  # noqa: E712
+        .filter(
+            EvidenceUpload.business_id == business.id if business else None,
+            EvidenceUpload.verified == True,  # noqa: E712
+        )
         .count()
         if business
         else 0
@@ -135,7 +138,10 @@ def compute_trust_indicators(
     if business:
         flag_count = (
             db.query(ReportFlag)
-            .filter(ReportFlag.target_type == FlagTargetType.BUSINESS, ReportFlag.target_id == business.id)
+            .filter(
+                ReportFlag.target_type == FlagTargetType.BUSINESS,
+                ReportFlag.target_id == business.id,
+            )
             .count()
         )
         if flag_count >= 2:
@@ -144,7 +150,9 @@ def compute_trust_indicators(
         if business.claimed_by_id:
             indicators.append("owner_claimed")
 
-        badges = db.query(VerificationBadge).filter(VerificationBadge.business_id == business.id).all()
+        badges = (
+            db.query(VerificationBadge).filter(VerificationBadge.business_id == business.id).all()
+        )
         badge_types = {b.badge_type for b in badges}
         if BadgeType.VERIFIED in badge_types:
             indicators.append("moderation_reviewed")

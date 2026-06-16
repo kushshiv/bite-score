@@ -48,14 +48,36 @@ CATEGORIES = [
 ]
 
 BUSINESS_NAMES = [
-    "Green Leaf Kitchen", "Spice Route", "Harbor Street Tacos", "Pure Bowl Co",
-    "Morning Grain Bakery", "Riverstone Bistro", "Urban Dosa Cart", "Clean Eats Lab",
-    "Saffron Table", "Oak & Olive", "Fresh Press Juicery", "Metro Noodle House",
-    "Sunrise Poke", "Heritage Thali", "Cloud Kitchen 42", "Market Lane Grill",
-    "Zen Ramen", "Farm to Fork", "Citrus & Sage", "The Honest Pantry",
-    "Street Spice Berlin", "Mumbai Masala Hub", "Austin Smokehouse", "Trust Bowl",
-    "Hygiene First Cafe", "Golden Wok", "Neighborhood Deli", "Craft Pizza Co",
-    "Wellness Wraps", "Community Kitchen",
+    "Green Leaf Kitchen",
+    "Spice Route",
+    "Harbor Street Tacos",
+    "Pure Bowl Co",
+    "Morning Grain Bakery",
+    "Riverstone Bistro",
+    "Urban Dosa Cart",
+    "Clean Eats Lab",
+    "Saffron Table",
+    "Oak & Olive",
+    "Fresh Press Juicery",
+    "Metro Noodle House",
+    "Sunrise Poke",
+    "Heritage Thali",
+    "Cloud Kitchen 42",
+    "Market Lane Grill",
+    "Zen Ramen",
+    "Farm to Fork",
+    "Citrus & Sage",
+    "The Honest Pantry",
+    "Street Spice Berlin",
+    "Mumbai Masala Hub",
+    "Austin Smokehouse",
+    "Trust Bowl",
+    "Hygiene First Cafe",
+    "Golden Wok",
+    "Neighborhood Deli",
+    "Craft Pizza Co",
+    "Wellness Wraps",
+    "Community Kitchen",
 ]
 
 NOTES = [
@@ -91,9 +113,12 @@ def backfill_coordinates(db):
 
 def backfill_cover_images(db):
     updated = 0
-    for business in db.query(Business).options(joinedload(Business.category)).filter(
-        Business.cover_image_url.is_(None)
-    ).all():
+    for business in (
+        db.query(Business)
+        .options(joinedload(Business.category))
+        .filter(Business.cover_image_url.is_(None))
+        .all()
+    ):
         slug = business.category.slug if business.category else None
         business.cover_image_url = cover_for_category(slug)
         updated += 1
@@ -114,10 +139,30 @@ def seed():
         return
 
     users = [
-        User(email="admin@bitescore.demo", hashed_password=get_password_hash(DEMO_PASSWORD), full_name="Admin User", role=UserRole.ADMIN),
-        User(email="owner@bitescore.demo", hashed_password=get_password_hash(DEMO_PASSWORD), full_name="Business Owner", role=UserRole.BUSINESS_OWNER),
-        User(email="user@bitescore.demo", hashed_password=get_password_hash(DEMO_PASSWORD), full_name="Demo User", role=UserRole.USER),
-        User(email="moderator@bitescore.demo", hashed_password=get_password_hash(DEMO_PASSWORD), full_name="Moderator", role=UserRole.MODERATOR),
+        User(
+            email="admin@bitescore.demo",
+            hashed_password=get_password_hash(DEMO_PASSWORD),
+            full_name="Admin User",
+            role=UserRole.ADMIN,
+        ),
+        User(
+            email="owner@bitescore.demo",
+            hashed_password=get_password_hash(DEMO_PASSWORD),
+            full_name="Business Owner",
+            role=UserRole.BUSINESS_OWNER,
+        ),
+        User(
+            email="user@bitescore.demo",
+            hashed_password=get_password_hash(DEMO_PASSWORD),
+            full_name="Demo User",
+            role=UserRole.USER,
+        ),
+        User(
+            email="moderator@bitescore.demo",
+            hashed_password=get_password_hash(DEMO_PASSWORD),
+            full_name="Moderator",
+            role=UserRole.MODERATOR,
+        ),
     ]
     for i in range(6):
         users.append(
@@ -165,12 +210,39 @@ def seed():
         )
         businesses.append(business)
 
-    db.add(VerificationBadge(business_id=businesses[0].id, badge_type=BadgeType.CLAIMED, issued_by_id=users[0].id))
-    db.add(VerificationBadge(business_id=businesses[0].id, badge_type=BadgeType.VERIFIED, issued_by_id=users[0].id))
-    db.add(VerificationBadge(business_id=businesses[1].id, badge_type=BadgeType.HIGH_CONFIDENCE, issued_by_id=users[0].id))
-    db.add(VerificationBadge(business_id=businesses[5].id, badge_type=BadgeType.UNDER_REVIEW, issued_by_id=users[0].id))
+    db.add(
+        VerificationBadge(
+            business_id=businesses[0].id, badge_type=BadgeType.CLAIMED, issued_by_id=users[0].id
+        )
+    )
+    db.add(
+        VerificationBadge(
+            business_id=businesses[0].id, badge_type=BadgeType.VERIFIED, issued_by_id=users[0].id
+        )
+    )
+    db.add(
+        VerificationBadge(
+            business_id=businesses[1].id,
+            badge_type=BadgeType.HIGH_CONFIDENCE,
+            issued_by_id=users[0].id,
+        )
+    )
+    db.add(
+        VerificationBadge(
+            business_id=businesses[5].id,
+            badge_type=BadgeType.UNDER_REVIEW,
+            issued_by_id=users[0].id,
+        )
+    )
 
-    db.add(ClaimRequest(business_id=businesses[2].id, user_id=users[1].id, status=ClaimStatus.PENDING, notes="I am the registered owner."))
+    db.add(
+        ClaimRequest(
+            business_id=businesses[2].id,
+            user_id=users[1].id,
+            status=ClaimStatus.PENDING,
+            notes="I am the registered owner.",
+        )
+    )
 
     visit_types = list(VisitType)
     review_count = 0
@@ -186,7 +258,9 @@ def seed():
             notes=random.choice(NOTES),
             consent_given=True,
             status=ReviewStatus.APPROVED,
-            business_response="Thank you for your community observation." if random.random() < 0.2 and business.claimed_by_id else None,
+            business_response="Thank you for your community observation."
+            if random.random() < 0.2 and business.claimed_by_id
+            else None,
         )
         db.add(review)
         db.flush()
@@ -199,7 +273,9 @@ def seed():
                 packaging=round(random.uniform(2.5, 5.0), 1),
                 water_confidence=round(random.uniform(2.5, 5.0), 1),
                 oil_freshness_concern=random.random() < 0.15,
-                taste_optional=round(random.uniform(3.0, 5.0), 1) if random.random() < 0.5 else None,
+                taste_optional=round(random.uniform(3.0, 5.0), 1)
+                if random.random() < 0.5
+                else None,
             )
         )
         review_count += 1

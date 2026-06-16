@@ -1,4 +1,4 @@
-.PHONY: help up down db-logs install install-backend install-frontend seed migrate backend frontend dev test test-backend test-frontend lint clean reset-db env
+.PHONY: help up down db-logs install install-backend install-frontend seed migrate backend frontend dev test test-backend test-frontend lint lint-fix clean reset-db env
 
 help:
 	@echo "BiteScore — common commands"
@@ -17,6 +17,8 @@ help:
 	@echo "  make test            Run backend + frontend tests"
 	@echo "  make test-backend    Run backend pytest suite"
 	@echo "  make test-frontend   Run frontend vitest suite"
+	@echo "  make lint            Run backend ruff lint + format check"
+	@echo "  make lint-fix        Auto-fix backend lint and formatting"
 	@echo "  make clean           Remove caches and build artifacts"
 	@echo "  make reset-db        Wipe DB volume and re-seed"
 
@@ -78,6 +80,11 @@ test-frontend: install-frontend
 
 lint:
 	cd backend && poetry run ruff check .
+	cd backend && poetry run ruff format --check .
+
+lint-fix:
+	cd backend && poetry run ruff check --fix .
+	cd backend && poetry run ruff format .
 
 clean:
 	rm -rf frontend/node_modules frontend/.nuxt frontend/.output

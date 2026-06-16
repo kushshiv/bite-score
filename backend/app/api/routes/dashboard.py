@@ -90,7 +90,9 @@ def respond_to_review(
     business = db.query(Business).filter(Business.claimed_by_id == user.id).first()
     if not business:
         raise HTTPException(status_code=404, detail="No claimed business found")
-    review = db.query(Review).filter(Review.id == review_id, Review.business_id == business.id).first()
+    review = (
+        db.query(Review).filter(Review.id == review_id, Review.business_id == business.id).first()
+    )
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
     review.business_response = data.response
@@ -104,7 +106,12 @@ def create_flag(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    flag = ReportFlag(reporter_id=user.id, target_type=data.target_type, target_id=data.target_id, reason=data.reason)
+    flag = ReportFlag(
+        reporter_id=user.id,
+        target_type=data.target_type,
+        target_id=data.target_id,
+        reason=data.reason,
+    )
     db.add(flag)
     db.commit()
     db.refresh(flag)
@@ -124,11 +131,17 @@ def moderation_queue(
         .all()
     )
     open_flags = db.query(ReportFlag).filter(ReportFlag.status == FlagStatus.OPEN).limit(50).all()
-    pending_claims = db.query(ClaimRequest).filter(ClaimRequest.status == ClaimStatus.PENDING).limit(50).all()
+    pending_claims = (
+        db.query(ClaimRequest).filter(ClaimRequest.status == ClaimStatus.PENDING).limit(50).all()
+    )
     return {
         "pending_reviews": len(pending_reviews),
-        "reviews": [{"id": r.id, "business_id": r.business_id, "notes": r.notes} for r in pending_reviews],
-        "open_flags": [{"id": f.id, "target_type": f.target_type, "reason": f.reason} for f in open_flags],
+        "reviews": [
+            {"id": r.id, "business_id": r.business_id, "notes": r.notes} for r in pending_reviews
+        ],
+        "open_flags": [
+            {"id": f.id, "target_type": f.target_type, "reason": f.reason} for f in open_flags
+        ],
         "pending_claims": [{"id": c.id, "business_id": c.business_id} for c in pending_claims],
     }
 
@@ -157,7 +170,9 @@ def moderate(
                 business = db.query(Business).filter(Business.id == claim.business_id).first()
                 if business:
                     business.claimed_by_id = claim.user_id
-                    badge = VerificationBadge(business_id=business.id, badge_type=BadgeType.CLAIMED, issued_by_id=user.id)
+                    badge = VerificationBadge(
+                        business_id=business.id, badge_type=BadgeType.CLAIMED, issued_by_id=user.id
+                    )
                     db.add(badge)
             elif data.action == "reject":
                 claim.status = ClaimStatus.REJECTED
@@ -187,12 +202,17 @@ def assign_badge(
 ):
     existing = (
         db.query(VerificationBadge)
-        .filter(VerificationBadge.business_id == data.business_id, VerificationBadge.badge_type == data.badge_type)
+        .filter(
+            VerificationBadge.business_id == data.business_id,
+            VerificationBadge.badge_type == data.badge_type,
+        )
         .first()
     )
     if existing:
         raise HTTPException(status_code=400, detail="Badge already assigned")
-    badge = VerificationBadge(business_id=data.business_id, badge_type=data.badge_type, issued_by_id=user.id)
+    badge = VerificationBadge(
+        business_id=data.business_id, badge_type=data.badge_type, issued_by_id=user.id
+    )
     db.add(badge)
     db.add(
         AdminAudit(

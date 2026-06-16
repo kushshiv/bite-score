@@ -1,8 +1,10 @@
-from app.services.business_query import businesses_in_area, business_to_list_item
+from app.services.business_query import business_to_list_item, businesses_in_area
 from app.services.covers import cover_for_category
 
 
-def test_business_to_list_item_includes_cover_and_scores(db_session, sample_business, sample_review):
+def test_business_to_list_item_includes_cover_and_scores(
+    db_session, sample_business, sample_review
+):
     item = business_to_list_item(db_session, sample_business)
     assert item.slug == "test-kitchen"
     assert item.review_count == 1

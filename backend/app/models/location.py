@@ -8,7 +8,9 @@ class Location(Base):
     __tablename__ = "locations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    business_id: Mapped[int] = mapped_column(ForeignKey("businesses.id"), unique=True, nullable=False)
+    business_id: Mapped[int] = mapped_column(
+        ForeignKey("businesses.id"), unique=True, nullable=False
+    )
     address: Mapped[str | None] = mapped_column(String(500))
     city: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     country: Mapped[str] = mapped_column(String(100), nullable=False)

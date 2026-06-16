@@ -21,7 +21,9 @@ def _make_score(**kwargs) -> StructuredScore:
 
 
 def test_compute_review_score_with_evidence():
-    score = _make_score(cleanliness=5.0, food_handling=5.0, staff_hygiene=5.0, packaging=5.0, water_confidence=5.0)
+    score = _make_score(
+        cleanliness=5.0, food_handling=5.0, staff_hygiene=5.0, packaging=5.0, water_confidence=5.0
+    )
     result = compute_review_score(score, has_evidence=True)
     assert result == 5.0
 

@@ -34,7 +34,10 @@ class TestListBusinesses:
     def test_includes_cover_image(self, client, sample_business, db_session):
         sample_business.cover_image_url = "https://images.unsplash.com/photo-example"
         db_session.commit()
-        assert client.get("/businesses").json()[0]["cover_image_url"] == "https://images.unsplash.com/photo-example"
+        assert (
+            client.get("/businesses").json()[0]["cover_image_url"]
+            == "https://images.unsplash.com/photo-example"
+        )
 
     def test_filter_by_city(self, client, sample_business):
         assert len(client.get("/businesses", params={"city": "Berlin"}).json()) == 1
@@ -162,7 +165,9 @@ class TestBusinessFacets:
     def test_returns_counts_for_area(self, client, geo_businesses, db_session, test_user):
         near = geo_businesses["near-kitchen"]
         db_session.add(
-            VerificationBadge(business_id=near.id, badge_type=BadgeType.VERIFIED, issued_by_id=test_user.id)
+            VerificationBadge(
+                business_id=near.id, badge_type=BadgeType.VERIFIED, issued_by_id=test_user.id
+            )
         )
         TestListBusinesses._add_high_score_review(db_session, near.id, test_user.id)
 

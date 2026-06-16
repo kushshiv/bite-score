@@ -15,7 +15,9 @@ def test_register_and_login(client):
     assert register.status_code == 200
     assert "access_token" in register.json()
 
-    login = client.post("/auth/login", json={"email": "newuser@bitescore.demo", "password": "Test1234!"})
+    login = client.post(
+        "/auth/login", json={"email": "newuser@bitescore.demo", "password": "Test1234!"}
+    )
     assert login.status_code == 200
     assert login.json()["token_type"] == "bearer"
 

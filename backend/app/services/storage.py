@@ -17,7 +17,9 @@ class StorageService:
 
     async def save_image(self, file: UploadFile) -> tuple[str, str]:
         if file.content_type not in ALLOWED_TYPES:
-            raise HTTPException(status_code=400, detail="Only JPEG, PNG, and WebP images are allowed")
+            raise HTTPException(
+                status_code=400, detail="Only JPEG, PNG, and WebP images are allowed"
+            )
 
         content = await file.read()
         if len(content) > MAX_SIZE:
