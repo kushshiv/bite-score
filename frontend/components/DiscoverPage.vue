@@ -77,7 +77,12 @@
         <p class="text-4xl">🍽️</p>
         <p class="mt-3 font-medium text-white">No places found</p>
         <p class="mt-1 text-sm text-gray-500">Try another search, change location, or clear filters.</p>
-        <button class="btn-primary mt-4" @click="clearAll">Clear filters</button>
+        <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
+          <button class="btn-primary" @click="clearAll">Clear filters</button>
+          <NuxtLink to="/add-place" class="btn-ghost-dark">
+            Can't find it? Add a place
+          </NuxtLink>
+        </div>
       </div>
       <div v-else class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <RestaurantCard v-for="b in results" :key="b.id" :business="b" variant="grid" />

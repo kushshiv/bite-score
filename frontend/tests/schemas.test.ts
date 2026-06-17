@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { flagSchema, loginSchema, registerSchema, reviewSchema } from '../utils/schemas'
+import { addPlaceSchema, flagSchema, loginSchema, registerSchema, reviewSchema } from '../utils/schemas'
 
 describe('loginSchema', () => {
   it('accepts valid credentials', () => {
@@ -77,5 +77,32 @@ describe('flagSchema', () => {
   it('requires at least 10 characters', () => {
     expect(flagSchema.safeParse({ reason: 'too short' }).success).toBe(false)
     expect(flagSchema.safeParse({ reason: 'This is a valid reported concern.' }).success).toBe(true)
+  })
+})
+
+describe('addPlaceSchema', () => {
+  const validPlace = {
+    name: "Joe's Taco Stand",
+    city: 'Berlin',
+    country: 'Germany',
+    category: 'street-food',
+    business_type: 'street_vendor' as const,
+  }
+
+  it('accepts a valid place submission', () => {
+    expect(addPlaceSchema.safeParse(validPlace).success).toBe(true)
+  })
+
+  it('rejects short name', () => {
+    expect(addPlaceSchema.safeParse({ ...validPlace, name: 'A' }).success).toBe(false)
+  })
+
+  it('accepts optional address and description', () => {
+    const result = addPlaceSchema.safeParse({
+      ...validPlace,
+      address: 'Main St',
+      description: 'Near the park',
+    })
+    expect(result.success).toBe(true)
   })
 })

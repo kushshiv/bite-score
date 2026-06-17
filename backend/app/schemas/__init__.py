@@ -104,6 +104,18 @@ class BusinessFacets(BaseModel):
     categories: list[CategoryFacet]
 
 
+class BusinessCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=255)
+    city: str = Field(min_length=2, max_length=100)
+    country: str = Field(min_length=2, max_length=100)
+    address: str | None = Field(default=None, max_length=500)
+    category: str = Field(min_length=2, max_length=100)
+    business_type: BusinessType = BusinessType.RESTAURANT
+    description: str | None = Field(default=None, max_length=2000)
+    latitude: float | None = None
+    longitude: float | None = None
+
+
 class BusinessDetail(BusinessListItem):
     description: str | None
     status: BusinessStatus

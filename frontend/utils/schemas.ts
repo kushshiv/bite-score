@@ -26,3 +26,21 @@ export const reviewSchema = z.object({
 export const flagSchema = z.object({
   reason: z.string().min(10, 'Please provide at least 10 characters'),
 })
+
+export const addPlaceSchema = z.object({
+  name: z.string().min(2, 'Name is required').max(255),
+  address: z.string().max(500).optional(),
+  city: z.string().min(2, 'City is required').max(100),
+  country: z.string().min(2, 'Country is required').max(100),
+  category: z.string().min(2, 'Category is required'),
+  business_type: z.enum([
+    'restaurant',
+    'street_vendor',
+    'cafe',
+    'food_court',
+    'bakery',
+    'cloud_kitchen',
+    'other',
+  ]),
+  description: z.string().max(2000).optional(),
+})

@@ -24,6 +24,7 @@
           {{ detecting ? 'Locating…' : 'Near me' }}
         </button>
         <template v-if="auth.isLoggedIn">
+          <NuxtLink to="/add-place" class="btn-ghost-dark hidden sm:inline-flex">Add a place</NuxtLink>
           <NuxtLink to="/dashboard" class="btn-ghost-dark hidden sm:inline-flex">My reviews</NuxtLink>
           <button class="btn-ghost-dark text-xs" @click="auth.logout()">Logout</button>
         </template>

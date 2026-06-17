@@ -2,12 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 from app.config import settings
+from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.business import Business
 from app.models.enums import BadgeType, ReviewStatus
 from app.models.evidence_upload import EvidenceUpload
 from app.models.review import Review
+from app.models.user import User
 from app.schemas import (
+    BusinessCreate,
     BusinessDetail,
     BusinessFacets,
     BusinessListItem,
@@ -16,6 +19,7 @@ from app.schemas import (
     ReviewOut,
     ScoreBreakdown,
 )
+from app.services.business_create import business_to_detail, create_business
 from app.services.business_query import (
     build_business_query,
     business_to_list_item,
@@ -123,6 +127,16 @@ def list_businesses(
     if sort == "score":
         items.sort(key=lambda i: i.overall_percent, reverse=True)
     return items
+
+
+@router.post("", response_model=BusinessDetail, status_code=201)
+def add_business(
+    data: BusinessCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),  # noqa: ARG001 — auth gate for community submissions
+):
+    business = create_business(db, data)
+    return business_to_detail(db, business)
 
 
 @router.get("/{slug}", response_model=BusinessDetail)

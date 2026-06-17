@@ -7,6 +7,7 @@ from app.models.location import Location
 from app.models.review import Review
 from app.models.structured_score import StructuredScore
 from app.models.verification_badge import VerificationBadge
+from tests.conftest import auth_header
 
 
 class TestListBusinesses:
@@ -206,6 +207,76 @@ class TestBusinessFacets:
         ).json()
         assert data["total"] == 1
         assert data["categories"][0]["count"] == 1
+
+
+class TestCreateBusiness:
+    def test_requires_auth(self, client, sample_business):
+        response = client.post(
+            "/businesses",
+            json={
+                "name": "New Spot",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "test-cafe",
+            },
+        )
+        assert response.status_code == 401
+
+    def test_creates_business(self, client, test_user, sample_business):
+        headers = auth_header(client, test_user.email, "Test1234!")
+        response = client.post(
+            "/businesses",
+            headers=headers,
+            json={
+                "name": "Joe's Taco Stand",
+                "address": "Main St 1",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "test-cafe",
+                "business_type": "street_vendor",
+                "latitude": 52.53,
+                "longitude": 13.41,
+            },
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["name"] == "Joe's Taco Stand"
+        assert data["slug"] == "joe-s-taco-stand"
+        assert data["business_type"] == "street_vendor"
+        assert data["location"]["city"] == "Berlin"
+        assert data["location"]["address"] == "Main St 1"
+        assert data["location"]["latitude"] == 52.53
+        assert data["cover_image_url"] is not None
+        assert data["status"] == "active"
+
+    def test_unique_slug_on_duplicate_name(self, client, test_user, sample_business):
+        headers = auth_header(client, test_user.email, "Test1234!")
+        payload = {
+            "name": "Duplicate Name",
+            "city": "Berlin",
+            "country": "Germany",
+            "category": "test-cafe",
+        }
+        first = client.post("/businesses", headers=headers, json=payload)
+        second = client.post("/businesses", headers=headers, json=payload)
+        assert first.status_code == 201
+        assert second.status_code == 201
+        assert first.json()["slug"] == "duplicate-name"
+        assert second.json()["slug"] == "duplicate-name-2"
+
+    def test_unknown_category(self, client, test_user, sample_business):
+        headers = auth_header(client, test_user.email, "Test1234!")
+        response = client.post(
+            "/businesses",
+            headers=headers,
+            json={
+                "name": "Mystery Place",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "not-a-real-category",
+            },
+        )
+        assert response.status_code == 400
 
 
 class TestBusinessDetail:
