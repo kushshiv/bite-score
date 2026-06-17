@@ -1,6 +1,6 @@
 <template>
   <div v-if="visible" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" @click.self="close">
-    <div class="card w-full max-w-md">
+    <div class="card w-full max-w-md text-slate-900">
       <h2 class="text-xl font-semibold text-slate-900">{{ mode === 'login' ? 'Sign in' : 'Create account' }}</h2>
       <p class="mt-1 text-sm text-slate-500">Sign in to save reviews and help others eat safely.</p>
 
