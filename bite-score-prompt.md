@@ -543,3 +543,140 @@ Recommended launch order:
 # Final recommendation
 
 Build **web-first** and make it fully mobile responsive. Do **not** start with native mobile unless early users clearly need frequent on-the-go review posting. Search and validate the name before spending on branding, and for a founder living in Germany, the most practical legal path is usually to validate first, then incorporate and protect the brand in Germany or the EU first, expanding later if the product gains traction. Trademark search should begin with WIPO and then the specific core markets through USPTO, EUIPO, DPMA, and India’s trademark system.[cite:247][cite:268][cite:258][cite:249][cite:267]
+
+---
+
+# Feature tracker — milestones & user stories
+
+Use this section to sync with **GitHub Issues + Milestones + Projects**.  
+One issue per row; label with `P0` / `P1` / `P2` and the milestone name.
+
+## Milestone overview
+
+| Milestone | Theme | Status |
+|-----------|--------|--------|
+| **M0** | Platform foundation | Largely done |
+| **M1** | Consumer discovery | Core done |
+| **M2** | Trust & reviews | Core done; moderation/evidence gaps |
+| **M3** | Business owner | Partial (API > UI) |
+| **M4** | Moderation & admin | Functional MVP |
+| **M5** | Production & scale | Early / not started |
+
+---
+
+## M0 — Platform foundation
+
+| Priority | User story | Status |
+|----------|------------|--------|
+| P0 | As a **developer**, I can run Postgres locally with Docker. | Done |
+| P0 | As a **developer**, I can apply **Alembic migrations** (local, CI, predeploy). | Done |
+| P0 | As a **developer**, CI runs **lint, migrations, and tests** on every PR. | Done |
+| P0 | As a **deployer**, the API runs **migrations before starting** (Docker entrypoint + migrate service). | Done |
+| P1 | As a **deployer**, I can deploy frontend + API + RDS on AWS with HTTPS and env docs. | Partial |
+| P1 | As a **platform**, uploads are stored in **S3** (not local disk). | Not done |
+| P2 | As a **user**, I can reset password / verify email. | Not done |
+
+---
+
+## M1 — Consumer discovery
+
+| Priority | User story | Status |
+|----------|------------|--------|
+| P0 | As a **guest**, I can see businesses/vendors **near my city or GPS location**. | Done |
+| P0 | As a **guest**, I can **search** and filter by cuisine, trust, verified, safe-to-eat. | Done |
+| P0 | As a **guest**, I can browse in **list or map view** with distance. | Done |
+| P0 | As a **guest**, I can open a **business profile** (score, breakdown, badges, reviews). | Done |
+| P1 | As a **logged-in consumer**, I can **add a missing place** if search returns nothing. | Done |
+| P1 | As a **guest**, I see **cover photos** and cuisine categories on cards. | Done |
+| P2 | As a **guest**, added places use **real geocoding** (not city-center only). | Not done |
+| P2 | As a **platform**, we **deduplicate** similar businesses in the same city. | Not done |
+| P2 | As a **guest**, the home page has a strong **marketing hero** alongside discover. | Partial |
+
+---
+
+## M2 — Trust & reviews
+
+| Priority | User story | Status |
+|----------|------------|--------|
+| P0 | As a **logged-in consumer**, I can submit a **structured hygiene review**. | Done |
+| P0 | As a **guest**, I see an **explainable BiteScore** with methodology and trust indicators. | Done |
+| P0 | As a **logged-in consumer**, I can view **my past reviews** on a dashboard. | Done |
+| P1 | As a **logged-in consumer**, I can **attach photo evidence** when submitting a review. | Backend done; UI missing |
+| P1 | As a **guest**, I see **evidence** on business profiles. | Display done |
+| P1 | As a **logged-in consumer**, I can **report** a review, business, or concern. | Done |
+| P1 | New reviews are **pending** until a moderator approves them. | Not done (auto-approved today) |
+| P2 | As a **consumer**, I am notified when my review is approved/rejected. | Not done |
+| P2 | As a **platform**, **suspicious review** detection is automated. | Stub only |
+
+---
+
+## M3 — Business owner
+
+| Priority | User story | Status |
+|----------|------------|--------|
+| P0 | As a **business owner**, I can **submit a claim** for an existing listing. | Done (by business ID) |
+| P1 | As a **business owner**, I can **find my business by name** to claim it. | Not done |
+| P1 | As a **moderator**, I can **approve or reject** claim requests. | Done |
+| P1 | As a **business owner**, I can **edit my profile** after claim approval. | Done |
+| P1 | As a **business owner**, I can **respond to reviews** on my profile. | API done; UI missing |
+| P1 | As a **business owner**, I see **score breakdown and review stats**. | Done |
+| P2 | As a **business owner**, I can **upload certifications** for verification. | Not done |
+| P2 | As a **business owner**, I can **request a verified badge**. | Not done |
+| P2 | As a **business owner**, I see a **real score trend** over time. | Not done (illustrative chart) |
+| P2 | As a **business owner**, I can manage **billing / subscription**. | Mock only |
+
+---
+
+## M4 — Moderation & admin
+
+| Priority | User story | Status |
+|----------|------------|--------|
+| P0 | As a **moderator/admin**, I can open a **moderation queue** (reviews, flags, claims). | Done |
+| P0 | As a **moderator**, I can **approve / hide / flag reviews**. | Done |
+| P0 | As a **moderator**, I can **resolve or dismiss** user flags. | Done |
+| P0 | As a **moderator**, I can **approve/reject claims** and assign **badges**. | Done |
+| P0 | As a **platform**, moderation actions are **audited**. | Done |
+| P1 | As a **moderator**, I can **verify uploaded evidence** photos. | API done; admin UI missing |
+| P1 | As a **moderator**, newly submitted reviews appear in the queue by default. | Not done |
+| P1 | As a **moderator**, I can **approve consumer-added places** before they go public. | Not done |
+| P2 | As a **moderator**, I have **AI-assisted risk scoring** for the queue. | Stub only |
+| P2 | As a **guest**, `/moderation` explains platform policies. | Done |
+
+---
+
+## M5 — Production & scale
+
+| Priority | User story | Status |
+|----------|------------|--------|
+| P0 | As a **deployer**, production uses **RDS, secrets, HTTPS, CORS** correctly. | Documented |
+| P1 | As a **deployer**, I have a **CI/CD deploy workflow** (build → migrate → roll out). | Not done |
+| P1 | As a **platform**, file uploads use **S3** with signed URLs. | Not done |
+| P1 | As a **platform**, **Stripe** billing works for business subscriptions. | Mock only |
+| P2 | As a **user**, I can use a **PWA** / installable mobile web app. | Not done |
+| P2 | As a **platform**, we have **observability** (logs, metrics, errors). | Not done |
+| P2 | As a **platform**, **database backups** are automated. | RDS docs only |
+
+---
+
+## Suggested build order (next up)
+
+| Order | Priority | User story |
+|-------|----------|------------|
+| 1 | P0 | Attach **photo evidence** in review submit UI |
+| 2 | P0 | Reviews default to **pending**; only approved affect public score |
+| 3 | P0 | Business owner **respond to reviews** in dashboard UI |
+| 4 | P0 | Claim flow: **search business by name**, not ID |
+| 5 | P1 | Moderator UI to **verify evidence** |
+| 6 | P1 | Consumer-added places → **under review** until approved |
+| 7 | P1 | My reviews dashboard shows **business name + link** |
+| 8 | P1 | **S3 uploads** for production |
+| 9 | P1 | **Deploy GitHub Action** (migrate predeploy job) |
+
+---
+
+## GitHub Projects setup (quick reference)
+
+1. **Labels:** `P0`, `P1`, `P2`, `consumer`, `business-owner`, `moderator`, `admin`, `platform`
+2. **Milestones** (Issues → Milestones): M0–M5 as named above
+3. **One GitHub Issue per user story row** — milestones attach to issues, not bugs only
+4. **Project board fields:** Status, Priority, Milestone (synced from issue)
