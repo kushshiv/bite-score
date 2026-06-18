@@ -29,7 +29,7 @@ python3 --version # 3.11+
 ```bash
 make install    # install backend + frontend deps
 make up         # start PostgreSQL
-make seed       # load demo data
+make db-setup   # run migrations + load demo data
 make dev        # shows how to start both servers
 ```
 
@@ -56,7 +56,8 @@ docker compose up -d
 cd backend
 cp ../.env.example .env
 poetry install --with dev
-poetry run seed
+poetry run alembic upgrade head   # create schema
+poetry run seed                   # load demo data
 poetry run uvicorn app.main:app --reload --port 8000
 ```
 
@@ -99,6 +100,30 @@ make seed
 Reset database and re-seed from scratch:
 
 ```bash
+make reset-db   # wipes volume, runs migrations, then seeds
+```
+
+## Database migrations
+
+Schema changes are managed with **Alembic** — not `create_all()` on startup.
+
+| Command | When |
+|---------|------|
+| `make migrate` | Apply pending migrations locally |
+| `make db-setup` | Migrate + seed (first-time setup) |
+| `poetry run alembic revision --autogenerate -m "describe change"` | Create a new migration after model changes |
+| `poetry run alembic upgrade head` | Apply migrations |
+| `poetry run alembic downgrade -1` | Roll back one revision |
+
+Migrations run automatically:
+- **Local dev:** `make backend` and `make seed` run migrations first
+- **CI:** backend tests and a dedicated `migrations.yml` workflow
+- **Docker deploy:** `migrate` service runs before `api` starts (`docker-compose.prod.yml`)
+- **Container entrypoint:** API image runs `alembic upgrade head` before Uvicorn
+
+If you previously used the empty placeholder migration, reset locally:
+
+```bash
 make reset-db
 ```
 
@@ -112,8 +137,10 @@ bite-score/
 │   └── tests/         # vitest unit tests
 ├── backend/           # FastAPI + SQLAlchemy + Alembic
 │   └── tests/         # pytest API + unit tests
-├── docker-compose.yml # PostgreSQL 16
-├── terraform/         # AWS EC2 scaffold
+├── docker-compose.yml       # PostgreSQL 16 (local dev)
+├── docker-compose.prod.yml  # Postgres + migrate job + API (deploy)
+├── backend/Dockerfile       # API image with predeploy migrations
+├── .github/workflows/       # CI + migration verification
 └── .env.example
 ```
 
@@ -165,10 +192,11 @@ cd backend && poetry install --with dev
 - `test_api_businesses.py` — list, search, business profiles
 - `test_api_reviews.py` — review submission, billing mock
 
-Uses PostgreSQL (same as local dev and production). Start Postgres first:
+Uses PostgreSQL (same as local dev and production). Start Postgres and apply migrations first:
 
 ```bash
 make up           # docker compose postgres
+make migrate      # alembic upgrade head
 make test-backend
 ```
 
@@ -228,11 +256,12 @@ cp .env.example backend/.env
 #   CORS_ORIGINS=https://yourdomain.com
 #   API_BASE_URL=https://api.yourdomain.com
 
-# 5. Start database (if using Docker on EC2 instead of RDS)
-docker compose up -d
+# 5. Database migrations + seed
+cd backend && poetry install
+poetry run alembic upgrade head
+poetry run seed
 
-# 6. Backend
-cd backend && poetry install && poetry run seed
+# 6. Backend (migrations also run via Docker entrypoint in production images)
 poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 # 7. Frontend (separate process or build)
@@ -249,21 +278,30 @@ NUXT_PUBLIC_API_BASE=https://api.yourdomain.com node .output/server/index.mjs
 
 ### Option B: Docker Compose on a single VPS
 
-Works on EC2, DigitalOcean, Hetzner, etc.
+Works on EC2, DigitalOcean, Hetzner, etc. The `migrate` service runs as a **predeploy job** before the API container starts.
 
 ```bash
 # On the server
 git clone <your-repo-url> bite-score && cd bite-score
 cp .env.example backend/.env
-# Edit backend/.env for production
+# Edit backend/.env for production (DATABASE_URL, JWT_SECRET, CORS_ORIGINS, ...)
 
-docker compose up -d          # Postgres
-cd backend && poetry install && poetry run seed
-poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+# Start Postgres, run migrations, then API
+docker compose -f docker-compose.prod.yml up --build -d
+
+# Optional: seed demo data (first deploy only)
+docker compose -f docker-compose.prod.yml exec api poetry run seed
 
 cd ../frontend
 npm install && npm run build
 NUXT_PUBLIC_API_BASE=http://<server-ip>:8000 node .output/server/index.mjs
+```
+
+Run migrations only (e.g. before a rolling deploy):
+
+```bash
+make docker-migrate
+# or: docker compose -f docker-compose.prod.yml run --rm migrate
 ```
 
 ### Option C: Frontend static + API only
@@ -278,6 +316,7 @@ NUXT_PUBLIC_API_BASE=https://api.yourdomain.com npm run generate
 
 ### Post-deploy checklist
 
+- [ ] `alembic upgrade head` completed successfully (or `migrate` service exited 0)
 - [ ] `GET /health` returns `{"status":"ok"}`
 - [ ] Frontend loads and can search businesses
 - [ ] Login works with a seeded or registered account

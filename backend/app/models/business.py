@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
+from app.db.types import pg_enum
 from app.models.enums import BusinessStatus, BusinessType
 
 
@@ -15,12 +16,12 @@ class Business(Base):
     slug: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     category_id: Mapped[int | None] = mapped_column(ForeignKey("categories.id"))
     business_type: Mapped[BusinessType] = mapped_column(
-        Enum(BusinessType), default=BusinessType.RESTAURANT
+        pg_enum(BusinessType), default=BusinessType.RESTAURANT
     )
     description: Mapped[str | None] = mapped_column(Text)
     cover_image_url: Mapped[str | None] = mapped_column(String(500))
     status: Mapped[BusinessStatus] = mapped_column(
-        Enum(BusinessStatus), default=BusinessStatus.ACTIVE
+        pg_enum(BusinessStatus), default=BusinessStatus.ACTIVE
     )
     claimed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

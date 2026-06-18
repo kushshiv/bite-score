@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bitescore-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bitescore
+      POSTGRES_PASSWORD: bitescore
+      POSTGRES_DB: bitescore
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bitescore -d bitescore"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: ./backend
+    container_name: bitescore-migrate
+    restart: "no"
+    command: ["migrate"]
+    environment:
+      DATABASE_URL: postgresql+psycopg2://bitescore:bitescore@postgres:5432/bitescore
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-secret-key}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      UPLOAD_DIR: /app/uploads
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+
+  api:
+    build:
+      context: ./backend
+    container_name: bitescore-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://bitescore:bitescore@postgres:5432/bitescore
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-secret-key}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      UPLOAD_DIR: /app/uploads
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  postgres_data:
+  uploads_data:

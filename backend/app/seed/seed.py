@@ -5,7 +5,8 @@ from datetime import date, timedelta
 from sqlalchemy.orm import joinedload
 
 from app.core.security import get_password_hash
-from app.db.session import Base, SessionLocal, engine
+from app.db.migrate import run_migrations
+from app.db.session import SessionLocal
 from app.models import (
     Business,
     Category,
@@ -128,7 +129,7 @@ def backfill_cover_images(db):
 
 
 def seed():
-    Base.metadata.create_all(bind=engine)
+    run_migrations()
     db = SessionLocal()
 
     if db.query(User).filter(User.email == "admin@bitescore.demo").first():

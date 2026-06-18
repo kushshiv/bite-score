@@ -3,10 +3,12 @@ from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.security import get_password_hash
-from app.db.session import Base, SessionLocal, engine, get_db
+from app.db.migrate import run_migrations
+from app.db.session import SessionLocal, engine, get_db
 from app.main import app
 from app.models.business import Business
 from app.models.category import Category
@@ -17,16 +19,22 @@ from app.models.structured_score import StructuredScore
 from app.models.user import User
 
 
+def reset_database() -> None:
+    with engine.begin() as conn:
+        conn.execute(text("DROP SCHEMA public CASCADE"))
+        conn.execute(text("CREATE SCHEMA public"))
+    run_migrations()
+
+
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    reset_database()
     session = SessionLocal()
     try:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=engine)
+        reset_database()
 
 
 @pytest.fixture

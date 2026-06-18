@@ -23,6 +23,7 @@ email-validator = "^2.2.0"
 
 [tool.poetry.scripts]
 seed = "app.seed.seed:main"
+migrate = "app.db.migrate:main"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.8.0"

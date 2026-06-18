@@ -1,4 +1,4 @@
-.PHONY: help up down db-logs install install-backend install-frontend seed migrate backend frontend dev test test-backend test-frontend lint lint-fix clean reset-db env
+.PHONY: help up down db-logs install install-backend install-frontend seed migrate db-setup backend frontend dev test test-backend test-frontend lint lint-fix clean reset-db env docker-migrate docker-api
 
 help:
 	@echo "BiteScore — common commands"
@@ -9,11 +9,14 @@ help:
 	@echo "  make install         Install backend + frontend deps"
 	@echo "  make install-backend Install Python deps (Poetry)"
 	@echo "  make install-frontend Install Node deps (npm)"
-	@echo "  make seed            Seed demo data (30 businesses, 100 reviews)"
 	@echo "  make migrate         Run Alembic migrations"
-	@echo "  make backend         Start FastAPI on :8000"
+	@echo "  make db-setup        Run migrations + seed demo data"
+	@echo "  make seed            Seed demo data (runs migrations first)"
+	@echo "  make backend         Migrate DB, then start FastAPI on :8000"
 	@echo "  make frontend        Start Nuxt on :3000"
 	@echo "  make dev             Print instructions to run backend + frontend"
+	@echo "  make docker-migrate  Run migrations via Docker (production image)"
+	@echo "  make docker-api      Start Postgres + migrate + API via Docker Compose"
 	@echo "  make test            Run backend + frontend tests"
 	@echo "  make test-backend    Run backend pytest suite"
 	@echo "  make test-frontend   Run frontend vitest suite"
@@ -36,7 +39,7 @@ reset-db: down
 	docker compose up -d
 	@echo "Waiting for Postgres..."
 	@sleep 3
-	$(MAKE) seed
+	$(MAKE) db-setup
 
 install: install-backend install-frontend
 
@@ -50,13 +53,21 @@ env:
 	@test -f backend/.env || cp .env.example backend/.env
 	@echo "backend/.env ready"
 
-seed: env
+db-setup: migrate seed
+
+seed: env migrate
 	cd backend && poetry run seed
 
 migrate: env
 	cd backend && poetry run alembic upgrade head
 
-backend: env up
+docker-migrate:
+	docker compose -f docker-compose.prod.yml run --rm migrate
+
+docker-api:
+	docker compose -f docker-compose.prod.yml up --build -d
+
+backend: env up migrate
 	cd backend && poetry run uvicorn app.main:app --reload --port 8000
 
 frontend:
@@ -72,7 +83,7 @@ dev:
 
 test: test-backend test-frontend
 
-test-backend: install-backend up
+test-backend: install-backend up migrate
 	cd backend && poetry run pytest -v
 
 test-frontend: install-frontend
