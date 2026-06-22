@@ -8,17 +8,17 @@
     >
       <span
         class="flex h-14 w-14 items-center justify-center rounded-full border-2 text-xl transition"
-        :class="activeCategory === cat.slug ? 'border-trust-500 bg-trust-600/10' : 'border-surface-border bg-surface-raised hover:border-gray-500'"
+        :class="activeCategory === cat.slug ? 'border-trust-500 bg-trust-600/10' : 'border-surface-border bg-surface-raised hover:border-discover-muted'"
       >
         {{ cat.emoji }}
       </span>
-      <span class="max-w-[4.5rem] truncate text-center text-xs text-gray-400">{{ cat.label }}</span>
+      <span class="max-w-[4.5rem] truncate text-center text-xs text-discover-muted">{{ cat.label }}</span>
     </button>
     <button class="flex shrink-0 flex-col items-center gap-1.5" @click="emit('select', '')">
-      <span class="flex h-14 w-14 items-center justify-center rounded-full border border-surface-border bg-surface-raised text-xs font-medium text-gray-400 hover:border-gray-500">
+      <span class="flex h-14 w-14 items-center justify-center rounded-full border border-surface-border bg-surface-raised text-xs font-medium text-discover-muted hover:border-discover-muted">
         All
       </span>
-      <span class="text-xs text-gray-500">Show all</span>
+      <span class="text-xs text-discover-muted">Show all</span>
     </button>
   </div>
 </template>

@@ -2,7 +2,7 @@
   <ClientOnly>
     <div ref="mapEl" class="h-[min(70vh,600px)] w-full overflow-hidden rounded-2xl border border-surface-border" />
     <template #fallback>
-      <div class="flex h-64 items-center justify-center rounded-2xl border border-surface-border bg-surface-raised text-gray-500">
+      <div class="flex h-64 items-center justify-center rounded-2xl border border-surface-border bg-surface-raised text-discover-muted">
         Loading map...
       </div>
     </template>

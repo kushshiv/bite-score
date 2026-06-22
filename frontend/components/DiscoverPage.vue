@@ -17,9 +17,9 @@
 
     <!-- Mobile filters -->
     <details class="mt-4 rounded-2xl border border-surface-border bg-surface-raised p-4 lg:hidden">
-      <summary class="cursor-pointer text-sm font-medium text-white">
+      <summary class="cursor-pointer text-sm font-medium text-discover-fg">
         Filters & cuisine
-        <span v-if="facets" class="text-gray-500">({{ facets.total }} places)</span>
+        <span v-if="facets" class="text-discover-muted">({{ facets.total }} places)</span>
       </summary>
       <div class="mt-4 space-y-3">
         <FilterToggle
@@ -49,16 +49,16 @@
     </div>
 
     <section class="mt-8">
-      <h2 class="text-xl font-bold text-white">
+      <h2 class="text-xl font-bold text-discover-fg">
         <template v-if="viewMode === 'map'">Map view</template>
         <template v-else-if="filters.q">Results for "{{ filters.q }}"</template>
         <template v-else>Top rated nearby</template>
       </h2>
-      <p v-if="!pending && facets" class="mt-1 text-sm text-gray-500">
+      <p v-if="!pending && facets" class="mt-1 text-sm text-discover-muted">
         {{ facets.total }} place{{ facets.total === 1 ? '' : 's' }} in {{ location.label }}
       </p>
 
-      <div v-if="pending" class="mt-8 text-gray-500">Loading places...</div>
+      <div v-if="pending" class="mt-8 text-discover-muted">Loading places...</div>
       <div
         v-else-if="viewMode === 'map'"
         class="mt-6"
@@ -75,11 +75,11 @@
         class="mt-8 rounded-2xl border border-dashed border-surface-border p-12 text-center"
       >
         <p class="text-4xl">🍽️</p>
-        <p class="mt-3 font-medium text-white">No places found</p>
-        <p class="mt-1 text-sm text-gray-500">Try another search, change location, or clear filters.</p>
+        <p class="mt-3 font-medium text-discover-fg">No places found</p>
+        <p class="mt-1 text-sm text-discover-muted">Try another search, change location, or clear filters.</p>
         <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
           <button class="btn-primary" @click="clearAll">Clear filters</button>
-          <NuxtLink to="/add-place" class="btn-ghost-dark">
+          <NuxtLink to="/add-place" class="btn-discover-ghost">
             Can't find it? Add a place
           </NuxtLink>
         </div>

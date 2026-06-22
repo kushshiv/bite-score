@@ -1,40 +1,40 @@
 <template>
   <div class="mx-auto max-w-xl px-4 py-8 lg:px-6">
-    <NuxtLink to="/" class="text-sm text-gray-400 transition hover:text-white">← Back to discover</NuxtLink>
+    <NuxtLink to="/" class="text-sm text-discover-muted transition hover:text-discover-fg">← Back to discover</NuxtLink>
 
-    <h1 class="mt-4 text-2xl font-bold text-white">Add a missing place</h1>
-    <p class="mt-2 text-sm text-gray-400">
+    <h1 class="mt-4 text-2xl font-bold text-discover-fg">Add a missing place</h1>
+    <p class="mt-2 text-sm text-discover-muted">
       Can't find a restaurant or vendor? Add it so you and others can leave hygiene observations.
     </p>
 
     <form
-      class="mt-8 space-y-5 rounded-2xl border border-surface-border bg-surface-raised p-6 text-slate-900"
+      class="card-dark mt-8 space-y-5 p-6"
       @submit.prevent="submit"
     >
       <div>
-        <label class="label">Place name</label>
-        <input v-model="form.name" class="input" placeholder="e.g. Joe's Taco Stand" required />
+        <label class="label-discover">Place name</label>
+        <input v-model="form.name" class="input-dark" placeholder="e.g. Joe's Taco Stand" required />
       </div>
 
       <div>
-        <label class="label">Address (optional)</label>
-        <input v-model="form.address" class="input" placeholder="Street address or landmark" />
+        <label class="label-discover">Address (optional)</label>
+        <input v-model="form.address" class="input-dark" placeholder="Street address or landmark" />
       </div>
 
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
-          <label class="label">City</label>
-          <input v-model="form.city" class="input" required />
+          <label class="label-discover">City</label>
+          <input v-model="form.city" class="input-dark" required />
         </div>
         <div>
-          <label class="label">Country</label>
-          <input v-model="form.country" class="input" required />
+          <label class="label-discover">Country</label>
+          <input v-model="form.country" class="input-dark" required />
         </div>
       </div>
 
       <div>
-        <label class="label">Cuisine / category</label>
-        <select v-model="form.category" class="input" required>
+        <label class="label-discover">Cuisine / category</label>
+        <select v-model="form.category" class="input-dark" required>
           <option v-for="cat in CATEGORIES" :key="cat.slug" :value="cat.slug">
             {{ cat.emoji }} {{ cat.label }}
           </option>
@@ -42,8 +42,8 @@
       </div>
 
       <div>
-        <label class="label">Type of place</label>
-        <select v-model="form.business_type" class="input" required>
+        <label class="label-discover">Type of place</label>
+        <select v-model="form.business_type" class="input-dark" required>
           <option value="restaurant">Restaurant</option>
           <option value="street_vendor">Street vendor</option>
           <option value="cafe">Café</option>
@@ -55,10 +55,10 @@
       </div>
 
       <div>
-        <label class="label">Notes (optional)</label>
+        <label class="label-discover">Notes (optional)</label>
         <textarea
           v-model="form.description"
-          class="input"
+          class="input-dark"
           rows="2"
           placeholder="Anything helpful for others finding this place"
         />

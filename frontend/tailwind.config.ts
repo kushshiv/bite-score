@@ -18,10 +18,16 @@ export default {
           700: '#15803d',
         },
         surface: {
-          DEFAULT: '#1a1a1a',
-          raised: '#242424',
-          hover: '#2e2e2e',
-          border: '#333333',
+          DEFAULT: 'var(--surface)',
+          raised: 'var(--surface-raised)',
+          hover: 'var(--surface-hover)',
+          border: 'var(--surface-border)',
+        },
+        discover: {
+          fg: 'var(--discover-fg)',
+          muted: 'var(--discover-fg-muted)',
+          secondary: 'var(--discover-fg-secondary)',
+          subtle: 'var(--discover-fg-subtle)',
         },
         slate: {
           850: '#1a2332',

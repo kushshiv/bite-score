@@ -1,7 +1,7 @@
 <template>
   <NuxtLink
     :to="`/business/${business.slug}`"
-    class="group block overflow-hidden rounded-2xl border border-surface-border bg-surface-raised transition hover:border-gray-600"
+    class="group block overflow-hidden rounded-2xl border border-surface-border bg-surface-raised transition hover:border-discover-muted"
     :class="variant === 'compact' ? 'flex' : ''"
   >
     <div
@@ -33,14 +33,14 @@
     </div>
 
     <div class="flex min-w-0 flex-1 flex-col justify-center p-3 sm:p-4">
-      <h3 class="truncate font-semibold text-white group-hover:text-trust-400">
+      <h3 class="truncate font-semibold text-discover-fg group-hover:text-trust-400">
         {{ business.name }}
       </h3>
       <div class="mt-1 flex items-center gap-2 text-sm">
         <span class="font-medium text-trust-400">★ {{ Math.round(business.overall_percent) }}</span>
-        <span v-if="business.review_count" class="text-gray-500">({{ business.review_count }})</span>
-        <span class="text-gray-600">·</span>
-        <span class="truncate text-gray-500">{{ distanceLabel || business.location?.city }}</span>
+        <span v-if="business.review_count" class="text-discover-muted">({{ business.review_count }})</span>
+        <span class="text-discover-subtle">·</span>
+        <span class="truncate text-discover-muted">{{ distanceLabel || business.location?.city }}</span>
       </div>
       <div v-if="variant !== 'grid'" class="mt-2 flex flex-wrap items-center gap-2">
         <span

@@ -1,6 +1,6 @@
 <template>
   <aside class="sticky top-[72px] h-fit max-h-[calc(100vh-88px)] overflow-y-auto rounded-2xl border border-surface-border bg-surface-raised p-5">
-    <h2 class="text-lg font-bold text-white">{{ facets?.total ?? 0 }} places</h2>
+    <h2 class="text-lg font-bold text-discover-fg">{{ facets?.total ?? 0 }} places</h2>
 
     <div class="mt-5 space-y-4">
       <FilterToggle
@@ -22,10 +22,10 @@
     </div>
 
     <div class="mt-8">
-      <h3 class="text-sm font-semibold text-white">Cuisine</h3>
+      <h3 class="text-sm font-semibold text-discover-fg">Cuisine</h3>
       <ul class="mt-3 space-y-2">
         <li v-for="cat in CATEGORIES" :key="cat.slug">
-          <label class="flex cursor-pointer items-center justify-between gap-2 text-sm text-gray-400 hover:text-gray-200">
+          <label class="flex cursor-pointer items-center justify-between gap-2 text-sm text-discover-muted hover:text-discover-secondary">
             <span class="flex items-center gap-2.5">
               <input
                 type="checkbox"
@@ -35,7 +35,7 @@
               />
               <span>{{ cat.emoji }} {{ cat.label }}</span>
             </span>
-            <span class="text-xs text-gray-600">({{ categoryCount(cat.slug) }})</span>
+            <span class="text-xs text-discover-subtle">({{ categoryCount(cat.slug) }})</span>
           </label>
         </li>
       </ul>
@@ -43,7 +43,7 @@
 
     <button
       v-if="hasActiveFilters"
-      class="mt-6 w-full rounded-full border border-surface-border py-2 text-sm text-gray-400 transition hover:border-gray-500 hover:text-white"
+      class="mt-6 w-full rounded-full border border-surface-border py-2 text-sm text-discover-muted transition hover:border-discover-muted hover:text-discover-fg"
       @click="emit('clear')"
     >
       Clear all filters

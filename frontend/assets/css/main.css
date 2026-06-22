@@ -3,11 +3,34 @@
 @tailwind utilities;
 
 @layer base {
+  .discover-theme {
+    --surface: #1a1a1a;
+    --surface-raised: #242424;
+    --surface-hover: #2e2e2e;
+    --surface-border: #333333;
+    --discover-fg: #ffffff;
+    --discover-fg-muted: #9ca3af;
+    --discover-fg-secondary: #d1d5db;
+    --discover-fg-subtle: #6b7280;
+  }
+
+  .discover-theme[data-theme='light'] {
+    --surface: #f8fafc;
+    --surface-raised: #ffffff;
+    --surface-hover: #f1f5f9;
+    --surface-border: #e2e8f0;
+    --discover-fg: #0f172a;
+    --discover-fg-muted: #64748b;
+    --discover-fg-secondary: #475569;
+    --discover-fg-subtle: #94a3b8;
+  }
+
   body {
     @apply bg-slate-50 text-slate-800 antialiased;
   }
+
   body.discover-theme {
-    @apply bg-surface text-white;
+    @apply bg-surface text-discover-fg;
   }
 }
 
@@ -18,8 +41,8 @@
   .btn-secondary {
     @apply inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50;
   }
-  .btn-ghost-dark {
-    @apply inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-gray-300 transition hover:bg-surface-hover hover:text-white;
+  .btn-discover-ghost {
+    @apply inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-discover-secondary transition hover:bg-surface-hover hover:text-discover-fg;
   }
   .card {
     @apply rounded-xl border border-slate-200 bg-white p-6 shadow-sm;
@@ -31,10 +54,13 @@
     @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-trust-500 focus:outline-none focus:ring-1 focus:ring-trust-500;
   }
   .input-dark {
-    @apply w-full rounded-full border border-surface-border bg-surface-raised px-4 py-3 text-sm text-white placeholder:text-gray-500 focus:border-trust-500 focus:outline-none focus:ring-1 focus:ring-trust-500;
+    @apply w-full rounded-full border border-surface-border bg-surface-raised px-4 py-3 text-sm text-discover-fg placeholder:text-discover-muted focus:border-trust-500 focus:outline-none focus:ring-1 focus:ring-trust-500;
   }
   .label {
     @apply mb-1 block text-sm font-medium text-slate-700;
+  }
+  .label-discover {
+    @apply mb-1 block text-sm font-medium text-discover-fg;
   }
   .scrollbar-hide {
     -ms-overflow-style: none;
@@ -47,7 +73,7 @@
     @apply relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border border-surface-border bg-surface transition;
   }
   .toggle-pill-knob {
-    @apply absolute top-0.5 h-6 w-6 rounded-full bg-gray-500 transition-all;
+    @apply absolute top-0.5 h-6 w-6 rounded-full bg-discover-subtle transition-all;
   }
   .toggle-pill.active {
     @apply border-trust-600 bg-trust-600/20;
