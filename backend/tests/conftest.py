@@ -1,3 +1,7 @@
+import os
+
+os.environ.setdefault("GEOCODING_ENABLED", "false")
+
 from collections.abc import Generator
 from datetime import date
 

@@ -10,6 +10,7 @@ from app.models.location import Location
 from app.schemas import BusinessCreate, BusinessDetail, ScoreBreakdown
 from app.services.business_query import business_to_list_item
 from app.services.covers import cover_for_category
+from app.services.geocoding import resolve_coordinates
 from app.services.scoring import compute_business_score
 
 
@@ -45,14 +46,23 @@ def create_business(db: Session, data: BusinessCreate) -> Business:
     db.add(business)
     db.flush()
 
+    resolved = resolve_coordinates(
+        name=data.name,
+        address=data.address,
+        city=data.city,
+        country=data.country,
+        client_latitude=data.latitude,
+        client_longitude=data.longitude,
+    )
+
     db.add(
         Location(
             business_id=business.id,
             address=data.address,
             city=data.city.strip(),
             country=data.country.strip(),
-            latitude=data.latitude,
-            longitude=data.longitude,
+            latitude=resolved.latitude,
+            longitude=resolved.longitude,
         )
     )
     db.commit()

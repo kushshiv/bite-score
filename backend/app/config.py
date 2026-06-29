@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     upload_dir: str = "./uploads"
     api_base_url: str = "http://localhost:8000"
+    geocoding_enabled: bool = True
+    nominatim_base_url: str = "https://nominatim.openstreetmap.org"
+    geocoding_user_agent: str = "BiteScore/0.1 (local dev; contact: dev@bitescore.demo)"
+    geocoding_timeout_seconds: float = 5.0
 
     @property
     def cors_origin_list(self) -> list[str]:
