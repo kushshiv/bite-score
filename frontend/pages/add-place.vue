@@ -19,6 +19,7 @@
       <div>
         <label class="label-discover">Address (optional)</label>
         <input v-model="form.address" class="input-dark" placeholder="Street address or landmark" />
+        <p class="mt-1 text-xs text-discover-muted">We'll look up the exact location from the address when possible.</p>
       </div>
 
       <div class="grid gap-4 sm:grid-cols-2">
@@ -30,6 +31,22 @@
           <label class="label-discover">Country</label>
           <input v-model="form.country" class="input-dark" required />
         </div>
+      </div>
+
+      <div class="rounded-xl border border-surface-border bg-surface p-4">
+        <p class="text-sm text-discover-secondary">At the place right now?</p>
+        <button
+          type="button"
+          class="btn-discover-ghost mt-2"
+          :disabled="detecting"
+          @click="useCurrentLocation"
+        >
+          {{ detecting ? 'Getting location…' : gpsCoords ? '✓ Using your current location' : 'Use my current location' }}
+        </button>
+        <p v-if="locationError" class="mt-2 text-xs text-red-400">{{ locationError }}</p>
+        <p v-else-if="gpsCoords" class="mt-2 text-xs text-discover-muted">
+          GPS pin saved as fallback if address lookup fails.
+        </p>
       </div>
 
       <div>
@@ -83,6 +100,9 @@ const api = useApi()
 const { location } = useUserLocation()
 const loading = ref(false)
 const error = ref('')
+const detecting = ref(false)
+const locationError = ref('')
+const gpsCoords = ref<{ lat: number; lng: number } | null>(null)
 
 const form = reactive({
   name: '',
@@ -99,6 +119,29 @@ useSeoMeta({
   description: 'Add a missing restaurant or food vendor so the community can review hygiene and safety.',
 })
 
+function useCurrentLocation() {
+  if (!import.meta.client || !navigator.geolocation) {
+    locationError.value = 'Location is not available in this browser.'
+    return
+  }
+  detecting.value = true
+  locationError.value = ''
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      gpsCoords.value = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      }
+      detecting.value = false
+    },
+    () => {
+      locationError.value = 'Could not get your location. Try adding an address instead.'
+      detecting.value = false
+    },
+    { enableHighAccuracy: true, timeout: 10000 },
+  )
+}
+
 async function submit() {
   error.value = ''
   const parsed = addPlaceSchema.safeParse(form)
@@ -109,7 +152,7 @@ async function submit() {
 
   loading.value = true
   try {
-    const business = await api.post<{ id: number; slug: string }>('/businesses', {
+    const payload: Record<string, unknown> = {
       name: parsed.data.name,
       address: parsed.data.address || null,
       city: parsed.data.city,
@@ -117,9 +160,13 @@ async function submit() {
       category: parsed.data.category,
       business_type: parsed.data.business_type,
       description: parsed.data.description || null,
-      latitude: location.value.lat,
-      longitude: location.value.lng,
-    })
+    }
+    if (gpsCoords.value) {
+      payload.latitude = gpsCoords.value.lat
+      payload.longitude = gpsCoords.value.lng
+    }
+
+    const business = await api.post<{ id: number; slug: string }>('/businesses', payload)
     await navigateTo(`/submit-review/${business.id}`)
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Could not add this place'
