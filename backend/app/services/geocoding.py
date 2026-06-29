@@ -71,7 +71,9 @@ def fetch_nominatim(query: str) -> list[dict]:
         headers={"User-Agent": settings.geocoding_user_agent},
     )
     try:
-        with urllib.request.urlopen(request, timeout=settings.geocoding_timeout_seconds) as response:
+        with urllib.request.urlopen(
+            request, timeout=settings.geocoding_timeout_seconds
+        ) as response:
             return json.loads(response.read().decode())
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
         return []
