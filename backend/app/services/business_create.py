@@ -10,6 +10,7 @@ from app.models.location import Location
 from app.schemas import BusinessCreate, BusinessDetail, ScoreBreakdown
 from app.services.business_query import business_to_list_item
 from app.services.covers import cover_for_category
+from app.services.duplicate_detection import DuplicateCheckResult
 from app.services.geocoding import resolve_coordinates
 from app.services.scoring import compute_business_score
 
@@ -28,10 +29,19 @@ def unique_slug(db: Session, base: str) -> str:
     return slug
 
 
-def create_business(db: Session, data: BusinessCreate) -> Business:
+def create_business(
+    db: Session,
+    data: BusinessCreate,
+    *,
+    duplicate_check: DuplicateCheckResult | None = None,
+) -> Business:
     category = db.query(Category).filter(Category.slug == data.category).first()
     if not category:
         raise HTTPException(status_code=400, detail=f"Unknown category: {data.category}")
+
+    status = BusinessStatus.ACTIVE
+    if duplicate_check and duplicate_check.requires_acknowledgement and data.acknowledge_similar:
+        status = BusinessStatus.UNDER_REVIEW
 
     slug = unique_slug(db, slugify(data.name))
     business = Business(
@@ -41,7 +51,7 @@ def create_business(db: Session, data: BusinessCreate) -> Business:
         business_type=data.business_type,
         description=data.description,
         cover_image_url=cover_for_category(category.slug),
-        status=BusinessStatus.ACTIVE,
+        status=status,
     )
     db.add(business)
     db.flush()

@@ -81,20 +81,62 @@
         />
       </div>
 
+      <div v-if="duplicateConflict" class="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+        <p class="text-sm text-amber-200">{{ duplicateConflict.message }}</p>
+        <ul class="mt-3 space-y-2">
+          <li v-for="match in duplicateConflict.matches" :key="match.id">
+            <NuxtLink
+              :to="`/business/${match.slug}`"
+              class="text-sm text-discover-fg underline decoration-discover-muted underline-offset-2 hover:decoration-discover-fg"
+            >
+              {{ match.name }}
+            </NuxtLink>
+            <span class="ml-2 text-xs text-discover-muted">
+              {{ Math.round(match.similarity * 100) }}% similar
+            </span>
+          </li>
+        </ul>
+        <label v-if="duplicateConflict.allow_confirm" class="mt-4 flex items-start gap-2 text-sm text-discover-secondary">
+          <input v-model="confirmSimilar" type="checkbox" class="mt-1" />
+          <span>This is a different place — add it for review even though the name is similar.</span>
+        </label>
+      </div>
+
       <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
 
       <button type="submit" class="btn-primary w-full" :disabled="loading">
-        {{ loading ? 'Adding place…' : 'Add place & write a review' }}
+        {{
+          loading
+            ? 'Adding place…'
+            : duplicateConflict?.allow_confirm && confirmSimilar
+              ? 'Add anyway for review'
+              : 'Add place & write a review'
+        }}
       </button>
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ApiError, useApi } from '~/composables/useApi'
 import { addPlaceSchema } from '~/utils/schemas'
 import { CATEGORIES } from '~/composables/useCategoryMeta'
 
 definePageMeta({ layout: 'discover', middleware: 'auth' })
+
+interface SimilarBusinessMatch {
+  id: number
+  name: string
+  slug: string
+  similarity: number
+  match_type: string
+}
+
+interface DuplicateBusinessErrorDetail {
+  message: string
+  matches: SimilarBusinessMatch[]
+  allow_confirm: boolean
+}
 
 const api = useApi()
 const { location } = useUserLocation()
@@ -103,6 +145,8 @@ const error = ref('')
 const detecting = ref(false)
 const locationError = ref('')
 const gpsCoords = ref<{ lat: number; lng: number } | null>(null)
+const duplicateConflict = ref<DuplicateBusinessErrorDetail | null>(null)
+const confirmSimilar = ref(false)
 
 const form = reactive({
   name: '',
@@ -144,6 +188,7 @@ function useCurrentLocation() {
 
 async function submit() {
   error.value = ''
+  duplicateConflict.value = null
   const parsed = addPlaceSchema.safeParse(form)
   if (!parsed.success) {
     error.value = parsed.error.errors[0]?.message || 'Please check the form'
@@ -165,13 +210,33 @@ async function submit() {
       payload.latitude = gpsCoords.value.lat
       payload.longitude = gpsCoords.value.lng
     }
+    if (confirmSimilar.value) {
+      payload.acknowledge_similar = true
+    }
 
     const business = await api.post<{ id: number; slug: string }>('/businesses', payload)
     await navigateTo(`/submit-review/${business.id}`)
   } catch (e: unknown) {
+    if (e instanceof ApiError && e.status === 409 && isDuplicateDetail(e.detail)) {
+      duplicateConflict.value = e.detail
+      if (!e.detail.allow_confirm) {
+        error.value = e.message
+      }
+      return
+    }
     error.value = e instanceof Error ? e.message : 'Could not add this place'
   } finally {
     loading.value = false
   }
+}
+
+function isDuplicateDetail(detail: unknown): detail is DuplicateBusinessErrorDetail {
+  if (typeof detail !== 'object' || detail === null) return false
+  const candidate = detail as DuplicateBusinessErrorDetail
+  return (
+    typeof candidate.message === 'string' &&
+    Array.isArray(candidate.matches) &&
+    typeof candidate.allow_confirm === 'boolean'
+  )
 }
 </script>

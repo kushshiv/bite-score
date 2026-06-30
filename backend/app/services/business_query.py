@@ -3,7 +3,7 @@ from sqlalchemy.orm import Query, Session, joinedload
 
 from app.models.business import Business
 from app.models.category import Category
-from app.models.enums import BadgeType
+from app.models.enums import BadgeType, BusinessStatus
 from app.models.location import Location
 from app.models.verification_badge import VerificationBadge
 from app.schemas import BadgeOut, BusinessListItem, CategoryOut, LocationOut
@@ -24,6 +24,7 @@ def build_business_query(
         joinedload(Business.location),
         joinedload(Business.badges),
     )
+    query = query.filter(Business.status == BusinessStatus.ACTIVE)
     if q:
         query = query.filter(
             or_(
