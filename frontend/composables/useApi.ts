@@ -1,3 +1,15 @@
+export class ApiError extends Error {
+  status: number
+  detail: unknown
+
+  constructor(message: string, detail: unknown, status: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.detail = detail
+    this.status = status
+  }
+}
+
 export function useApi() {
   const config = useRuntimeConfig()
   const auth = useAuthStore()
@@ -20,7 +32,14 @@ export function useApi() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }))
-      throw new Error(err.detail || 'Request failed')
+      const detail = err.detail
+      const message =
+        typeof detail === 'string'
+          ? detail
+          : typeof detail === 'object' && detail !== null && 'message' in detail
+            ? String((detail as { message: string }).message)
+            : 'Request failed'
+      throw new ApiError(message, detail, res.status)
     }
     return res.json()
   }

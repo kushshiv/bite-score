@@ -114,6 +114,21 @@ class BusinessCreate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     latitude: float | None = None
     longitude: float | None = None
+    acknowledge_similar: bool = False
+
+
+class SimilarBusinessMatch(BaseModel):
+    id: int
+    name: str
+    slug: str
+    similarity: float
+    match_type: str
+
+
+class DuplicateBusinessErrorDetail(BaseModel):
+    message: str
+    matches: list[SimilarBusinessMatch]
+    allow_confirm: bool = False
 
 
 class BusinessDetail(BusinessListItem):

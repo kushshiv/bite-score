@@ -15,9 +15,11 @@ from app.schemas import (
     BusinessFacets,
     BusinessListItem,
     CategoryFacet,
+    DuplicateBusinessErrorDetail,
     EvidenceOut,
     ReviewOut,
     ScoreBreakdown,
+    SimilarBusinessMatch,
 )
 from app.services.business_create import business_to_detail, create_business
 from app.services.business_query import (
@@ -25,6 +27,7 @@ from app.services.business_query import (
     business_to_list_item,
     businesses_in_area,
 )
+from app.services.duplicate_detection import DuplicateCheckResult, check_duplicates
 from app.services.scoring import compute_business_score
 
 router = APIRouter(prefix="/businesses", tags=["businesses"])
@@ -135,8 +138,42 @@ def add_business(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),  # noqa: ARG001 — auth gate for community submissions
 ):
-    business = create_business(db, data)
+    duplicate_check = check_duplicates(db, data.name, data.city)
+    _raise_if_duplicate_blocked(duplicate_check, data.acknowledge_similar)
+    business = create_business(db, data, duplicate_check=duplicate_check)
     return business_to_detail(db, business)
+
+
+def _raise_if_duplicate_blocked(check: DuplicateCheckResult, acknowledge_similar: bool) -> None:
+    if not check.has_similar:
+        return
+
+    matches = [
+        SimilarBusinessMatch(
+            id=match.id,
+            name=match.name,
+            slug=match.slug,
+            similarity=match.similarity,
+            match_type=match.match_type,
+        )
+        for match in check.matches
+    ]
+
+    if check.block:
+        detail = DuplicateBusinessErrorDetail(
+            message="A very similar place already exists in this city.",
+            matches=matches,
+            allow_confirm=False,
+        )
+        raise HTTPException(status_code=409, detail=detail.model_dump())
+
+    if check.requires_acknowledgement and not acknowledge_similar:
+        detail = DuplicateBusinessErrorDetail(
+            message="Similar places already exist in this city. Review them or confirm this is different.",
+            matches=matches,
+            allow_confirm=True,
+        )
+        raise HTTPException(status_code=409, detail=detail.model_dump())
 
 
 @router.get("/{slug}", response_model=BusinessDetail)

@@ -249,20 +249,98 @@ class TestCreateBusiness:
         assert data["cover_image_url"] is not None
         assert data["status"] == "active"
 
-    def test_unique_slug_on_duplicate_name(self, client, test_user, sample_business):
+    def test_unique_slug_when_names_differ(self, client, test_user, sample_business):
         headers = auth_header(client, test_user.email, "Test1234!")
-        payload = {
-            "name": "Duplicate Name",
-            "city": "Berlin",
-            "country": "Germany",
-            "category": "test-cafe",
-        }
-        first = client.post("/businesses", headers=headers, json=payload)
-        second = client.post("/businesses", headers=headers, json=payload)
+        first = client.post(
+            "/businesses",
+            headers=headers,
+            json={
+                "name": "Northside Noodle Bar",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "test-cafe",
+            },
+        )
+        second = client.post(
+            "/businesses",
+            headers=headers,
+            json={
+                "name": "Southside Burger Joint",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "test-cafe",
+            },
+        )
         assert first.status_code == 201
         assert second.status_code == 201
-        assert first.json()["slug"] == "duplicate-name"
-        assert second.json()["slug"] == "duplicate-name-2"
+        assert first.json()["slug"] == "northside-noodle-bar"
+        assert second.json()["slug"] == "southside-burger-joint"
+
+    def test_blocks_exact_duplicate_in_same_city(self, client, test_user, sample_business):
+        headers = auth_header(client, test_user.email, "Test1234!")
+        response = client.post(
+            "/businesses",
+            headers=headers,
+            json={
+                "name": "Test Kitchen",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "test-cafe",
+            },
+        )
+        assert response.status_code == 409
+        detail = response.json()["detail"]
+        assert detail["allow_confirm"] is False
+        assert len(detail["matches"]) == 1
+        assert detail["matches"][0]["slug"] == "test-kitchen"
+
+    def test_similar_name_requires_acknowledgement(self, client, test_user, sample_business):
+        headers = auth_header(client, test_user.email, "Test1234!")
+        response = client.post(
+            "/businesses",
+            headers=headers,
+            json={
+                "name": "The Test Kitchen",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "test-cafe",
+            },
+        )
+        assert response.status_code == 409
+        assert response.json()["detail"]["allow_confirm"] is True
+
+    def test_acknowledged_similar_creates_under_review(self, client, test_user, sample_business):
+        headers = auth_header(client, test_user.email, "Test1234!")
+        response = client.post(
+            "/businesses",
+            headers=headers,
+            json={
+                "name": "The Test Kitchen",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "test-cafe",
+                "acknowledge_similar": True,
+            },
+        )
+        assert response.status_code == 201
+        assert response.json()["status"] == "under_review"
+
+    def test_under_review_hidden_from_list(self, client, test_user, sample_business):
+        headers = auth_header(client, test_user.email, "Test1234!")
+        client.post(
+            "/businesses",
+            headers=headers,
+            json={
+                "name": "The Test Kitchen",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "test-cafe",
+                "acknowledge_similar": True,
+            },
+        )
+        listed = client.get("/businesses", params={"city": "Berlin", "q": "Test Kitchen"}).json()
+        assert len(listed) == 1
+        assert listed[0]["slug"] == "test-kitchen"
 
     def test_unknown_category(self, client, test_user, sample_business):
         headers = auth_header(client, test_user.email, "Test1234!")
