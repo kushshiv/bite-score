@@ -1,8 +1,13 @@
 import random
 import re
+import uuid
 from datetime import date, timedelta
+from pathlib import Path
 
+from PIL import Image
 from sqlalchemy.orm import joinedload
+
+from app.config import settings
 
 from app.core.security import get_password_hash
 from app.db.migrate import run_migrations
@@ -11,6 +16,7 @@ from app.models import (
     Business,
     Category,
     ClaimRequest,
+    EvidenceUpload,
     Location,
     Review,
     StructuredScore,
@@ -98,6 +104,55 @@ def slugify(name: str) -> str:
     return slug
 
 
+def create_evidence_upload(
+    db,
+    review: Review,
+    *,
+    verified: bool = False,
+) -> EvidenceUpload:
+    upload_dir = Path(settings.upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}.jpg"
+    path = upload_dir / filename
+    color = (random.randint(90, 210), random.randint(90, 210), random.randint(90, 210))
+    Image.new("RGB", (640, 480), color=color).save(path, "JPEG")
+
+    upload = EvidenceUpload(
+        review_id=review.id,
+        business_id=review.business_id,
+        file_path=str(path),
+        mime_type="image/jpeg",
+        verified=verified,
+    )
+    db.add(upload)
+    return upload
+
+
+def backfill_evidence_uploads(db, target: int = 15) -> None:
+    existing = db.query(EvidenceUpload).count()
+    if existing >= target:
+        return
+
+    reviews = (
+        db.query(Review)
+        .outerjoin(EvidenceUpload, EvidenceUpload.review_id == Review.id)
+        .filter(EvidenceUpload.id.is_(None))
+        .order_by(Review.id)
+        .limit(target - existing + 10)
+        .all()
+    )
+    created = 0
+    for review in reviews:
+        if existing + created >= target:
+            break
+        create_evidence_upload(db, review, verified=random.random() < 0.25)
+        created += 1
+
+    if created:
+        db.commit()
+        print(f"Backfilled {created} evidence uploads.")
+
+
 def backfill_coordinates(db):
     city_coords = {c["city"]: c for c in CITIES}
     updated = 0
@@ -135,6 +190,7 @@ def seed():
     if db.query(User).filter(User.email == "admin@bitescore.demo").first():
         backfill_coordinates(db)
         backfill_cover_images(db)
+        backfill_evidence_uploads(db)
         print("Seed data already exists. Skipping.")
         db.close()
         return
@@ -280,6 +336,8 @@ def seed():
             )
         )
         review_count += 1
+        if random.random() < 0.18:
+            create_evidence_upload(db, review, verified=random.random() < 0.2)
 
     db.commit()
     db.close()

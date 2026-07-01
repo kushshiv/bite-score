@@ -98,17 +98,42 @@
           </div>
         </section>
 
-        <section v-if="evidence?.length" class="card">
-          <h3 class="font-semibold text-slate-900">Photos from diners</h3>
-          <div class="mt-4 grid grid-cols-2 gap-2">
-            <img
-              v-for="e in evidence"
-              :key="e.id"
-              :src="e.file_url"
-              class="h-24 w-full rounded-lg object-cover"
-              alt="Community evidence"
-            />
+        <section class="card">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="font-semibold text-slate-900">Photos from diners</h3>
+            <NuxtLink v-if="auth.isModerator" to="/admin" class="text-xs text-trust-600 hover:underline">
+              Open moderation queue
+            </NuxtLink>
           </div>
+          <p v-if="!evidence?.length" class="mt-3 text-sm text-slate-500">
+            No diner photos yet.
+            <span v-if="auth.isModerator"> Submit a review with photos as a user, or check other businesses.</span>
+          </p>
+          <div v-else class="mt-4 grid grid-cols-2 gap-2">
+            <div v-for="e in evidence" :key="e.id" class="relative">
+              <img
+                :src="e.file_url"
+                class="h-24 w-full rounded-lg object-cover"
+                alt="Community evidence"
+              />
+              <span
+                v-if="e.verified"
+                class="absolute bottom-1 left-1 rounded bg-trust-600/90 px-1.5 py-0.5 text-[10px] font-medium text-white"
+              >
+                Verified
+              </span>
+              <button
+                v-else-if="auth.isModerator"
+                type="button"
+                class="absolute bottom-1 left-1 rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-amber-600"
+                :disabled="verifyingId === e.id"
+                @click="verifyEvidence(e.id)"
+              >
+                {{ verifyingId === e.id ? '…' : 'Verify' }}
+              </button>
+            </div>
+          </div>
+          <p v-if="evidenceError" class="mt-2 text-xs text-red-600">{{ evidenceError }}</p>
         </section>
       </div>
     </div>
@@ -136,12 +161,16 @@ const auth = useAuthStore()
 const { open: openAuth } = useAuthModal()
 const showFlag = ref(false)
 const flagReason = ref('')
+const verifyingId = ref<number | null>(null)
+const evidenceError = ref('')
 
 const slug = route.params.slug as string
 
 const { data: business } = await useAsyncData(`business-${slug}`, () => api.get(`/businesses/${slug}`))
 const { data: reviews } = await useAsyncData(`reviews-${slug}`, () => api.get(`/businesses/${slug}/reviews`))
-const { data: evidence } = await useAsyncData(`evidence-${slug}`, () => api.get(`/businesses/${slug}/evidence`))
+const { data: evidence, refresh: refreshEvidence } = await useAsyncData(`evidence-${slug}`, () =>
+  api.get(`/businesses/${slug}/evidence`),
+)
 
 const verdict = computed(() =>
   business.value ? useTrustVerdict(business.value.score.overall_percent) : useTrustVerdict(0)
@@ -159,6 +188,19 @@ function formatType(t: string) {
 
 function formatIndicator(ind: string) {
   return ind.replace(/_/g, ' ')
+}
+
+async function verifyEvidence(uploadId: number) {
+  evidenceError.value = ''
+  verifyingId.value = uploadId
+  try {
+    await api.patch(`/uploads/${uploadId}/verify`)
+    await refreshEvidence()
+  } catch (e: unknown) {
+    evidenceError.value = e instanceof Error ? e.message : 'Could not verify photo'
+  } finally {
+    verifyingId.value = null
+  }
 }
 
 async function submitFlag() {

@@ -19,6 +19,7 @@ from app.models.category import Category
 from app.models.enums import BusinessType, ReviewStatus, UserRole, VisitType
 from app.models.location import Location
 from app.models.review import Review
+from app.models.evidence_upload import EvidenceUpload
 from app.models.structured_score import StructuredScore
 from app.models.user import User
 
@@ -141,6 +142,23 @@ def sample_review(db_session: Session, test_user: User, sample_business: Busines
     db_session.commit()
     db_session.refresh(review)
     return review
+
+
+@pytest.fixture
+def sample_evidence(
+    db_session: Session, sample_review: Review, sample_business: Business
+) -> EvidenceUpload:
+    upload = EvidenceUpload(
+        review_id=sample_review.id,
+        business_id=sample_business.id,
+        file_path="uploads/test-evidence.jpg",
+        mime_type="image/jpeg",
+        verified=False,
+    )
+    db_session.add(upload)
+    db_session.commit()
+    db_session.refresh(upload)
+    return upload
 
 
 @pytest.fixture

@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
     <h1 class="text-2xl font-bold text-slate-900">Admin & moderation</h1>
-    <p class="mt-2 text-slate-500">Review queue, flag handling, claim approvals, and badge assignment.</p>
+    <p class="mt-2 text-slate-500">Review queue, flag handling, claim approvals, evidence verification, and badge assignment.</p>
 
     <div v-if="pending" class="mt-8 text-slate-500">Loading...</div>
     <div v-else class="mt-8 grid gap-6 lg:grid-cols-3">
@@ -43,6 +43,51 @@
       </div>
     </div>
 
+    <div v-if="!pending" class="mt-8 card">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h3 class="font-semibold text-slate-900">Photo evidence to verify</h3>
+        <p class="text-sm text-slate-500">{{ queue?.pending_evidence || 0 }} pending</p>
+      </div>
+      <p v-if="evidenceError" class="mt-3 text-sm text-red-600">{{ evidenceError }}</p>
+      <p v-if="!queue?.evidence?.length" class="mt-4 text-sm text-slate-500">
+        No unverified photo evidence right now.
+      </p>
+      <div v-else class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          v-for="item in queue.evidence"
+          :key="item.id"
+          class="overflow-hidden rounded-xl border border-slate-200"
+        >
+          <img
+            :src="item.file_url"
+            class="h-44 w-full object-cover"
+            :alt="`Evidence for ${item.business_name || 'business'}`"
+          />
+          <div class="space-y-2 p-3">
+            <p class="text-sm font-medium text-slate-900">
+              <NuxtLink
+                v-if="item.business_slug"
+                :to="`/business/${item.business_slug}`"
+                class="text-trust-600 hover:underline"
+              >
+                {{ item.business_name }}
+              </NuxtLink>
+              <span v-else>Business #{{ item.business_id }}</span>
+            </p>
+            <p v-if="item.review_id" class="text-xs text-slate-500">Review #{{ item.review_id }}</p>
+            <button
+              class="btn-primary w-full"
+              type="button"
+              :disabled="verifyingId === item.id"
+              @click="verifyEvidence(item.id)"
+            >
+              {{ verifyingId === item.id ? 'Verifying…' : 'Verify photo' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="mt-8 card">
       <h3 class="font-semibold text-slate-900">Assign badge</h3>
       <form class="mt-4 flex flex-wrap gap-4" @submit.prevent="assignBadge">
@@ -69,15 +114,54 @@
 definePageMeta({ middleware: 'admin' })
 useSeoMeta({ title: 'Admin — BiteScore' })
 
+interface EvidenceModerationItem {
+  id: number
+  file_url: string
+  mime_type: string
+  verified: boolean
+  review_id: number | null
+  business_id: number | null
+  business_name: string | null
+  business_slug: string | null
+  created_at: string
+}
+
+interface ModerationQueue {
+  pending_reviews: number
+  pending_evidence: number
+  reviews: { id: number; business_id: number; notes: string | null }[]
+  open_flags: { id: number; target_type: string; reason: string }[]
+  pending_claims: { id: number; business_id: number }[]
+  evidence: EvidenceModerationItem[]
+}
+
 const api = useApi()
 const aiResult = ref('')
+const evidenceError = ref('')
+const verifyingId = ref<number | null>(null)
 const badgeForm = reactive({ business_id: '', badge_type: 'verified' })
 
-const { data: queue, pending, refresh } = await useAsyncData('mod-queue', () => api.get('/admin/moderation-queue'))
+const { data: queue, pending, refresh } = await useAsyncData<ModerationQueue>(
+  'mod-queue',
+  () => api.get('/admin/moderation-queue'),
+)
 
 async function moderate(target_type: string, target_id: number, action: string) {
   await api.post('/admin/moderate', { action, target_type, target_id })
   refresh()
+}
+
+async function verifyEvidence(uploadId: number) {
+  evidenceError.value = ''
+  verifyingId.value = uploadId
+  try {
+    await api.patch(`/uploads/${uploadId}/verify`)
+    await refresh()
+  } catch (e: unknown) {
+    evidenceError.value = e instanceof Error ? e.message : 'Could not verify photo'
+  } finally {
+    verifyingId.value = null
+  }
 }
 
 async function assignBadge() {

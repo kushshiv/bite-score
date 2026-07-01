@@ -28,6 +28,7 @@ from app.services.business_query import (
     businesses_in_area,
 )
 from app.services.duplicate_detection import DuplicateCheckResult, check_duplicates
+from app.services.evidence import evidence_file_url
 from app.services.scoring import compute_business_score
 
 router = APIRouter(prefix="/businesses", tags=["businesses"])
@@ -239,7 +240,7 @@ def get_business_evidence(slug: str, db: Session = Depends(get_db)):
     return [
         EvidenceOut(
             id=u.id,
-            file_url=f"{settings.api_base_url}/uploads/{u.file_path.split('/')[-1]}",
+            file_url=evidence_file_url(u.file_path),
             mime_type=u.mime_type,
             verified=u.verified,
             created_at=u.created_at,
