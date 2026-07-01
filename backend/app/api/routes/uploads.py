@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.core.deps import get_current_user, require_roles
 from app.db.session import get_db
+from app.models.admin_audit import AdminAudit
 from app.models.enums import UserRole
 from app.models.evidence_upload import EvidenceUpload
 from app.models.review import Review
 from app.schemas import EvidenceOut
+from app.services.evidence import evidence_file_url
 from app.services.storage import storage_service
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
@@ -42,7 +43,7 @@ async def upload_evidence(
 
     return EvidenceOut(
         id=upload.id,
-        file_url=f"{settings.api_base_url}/uploads/{file_path.split('/')[-1]}",
+        file_url=evidence_file_url(upload.file_path),
         mime_type=upload.mime_type,
         verified=upload.verified,
         created_at=upload.created_at,
@@ -58,12 +59,27 @@ def verify_upload(
     upload = db.query(EvidenceUpload).filter(EvidenceUpload.id == upload_id).first()
     if not upload:
         raise HTTPException(status_code=404, detail="Upload not found")
-    upload.verified = True
-    db.commit()
-    db.refresh(upload)
+
+    if not upload.verified:
+        upload.verified = True
+        db.add(
+            AdminAudit(
+                actor_id=user.id,
+                action="verify_evidence",
+                target_type="evidence",
+                target_id=upload.id,
+                metadata_json={
+                    "business_id": upload.business_id,
+                    "review_id": upload.review_id,
+                },
+            )
+        )
+        db.commit()
+        db.refresh(upload)
+
     return EvidenceOut(
         id=upload.id,
-        file_url=f"{settings.api_base_url}/uploads/{upload.file_path.split('/')[-1]}",
+        file_url=evidence_file_url(upload.file_path),
         mime_type=upload.mime_type,
         verified=upload.verified,
         created_at=upload.created_at,

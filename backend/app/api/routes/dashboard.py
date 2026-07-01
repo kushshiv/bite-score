@@ -7,6 +7,7 @@ from app.models.admin_audit import AdminAudit
 from app.models.business import Business
 from app.models.claim_request import ClaimRequest
 from app.models.enums import BadgeType, ClaimStatus, FlagStatus, ReviewStatus, UserRole
+from app.models.evidence_upload import EvidenceUpload
 from app.models.report_flag import ReportFlag
 from app.models.review import Review
 from app.models.user import User
@@ -16,12 +17,14 @@ from app.schemas import (
     BusinessUpdate,
     ClaimCreate,
     ClaimOut,
+    EvidenceModerationItem,
     FlagCreate,
     FlagOut,
     ModerationAction,
     ReviewResponseUpdate,
     ScoreBreakdown,
 )
+from app.services.evidence import evidence_file_url
 from app.services.scoring import compute_business_score
 
 router = APIRouter(tags=["dashboard"])
@@ -134,8 +137,31 @@ def moderation_queue(
     pending_claims = (
         db.query(ClaimRequest).filter(ClaimRequest.status == ClaimStatus.PENDING).limit(50).all()
     )
+    unverified_evidence = (
+        db.query(EvidenceUpload)
+        .options(joinedload(EvidenceUpload.business))
+        .filter(EvidenceUpload.verified.is_(False))
+        .order_by(EvidenceUpload.created_at.asc())
+        .limit(50)
+        .all()
+    )
+    evidence_items = [
+        EvidenceModerationItem(
+            id=upload.id,
+            file_url=evidence_file_url(upload.file_path),
+            mime_type=upload.mime_type,
+            verified=upload.verified,
+            review_id=upload.review_id,
+            business_id=upload.business_id,
+            business_name=upload.business.name if upload.business else None,
+            business_slug=upload.business.slug if upload.business else None,
+            created_at=upload.created_at,
+        )
+        for upload in unverified_evidence
+    ]
     return {
         "pending_reviews": len(pending_reviews),
+        "pending_evidence": len(evidence_items),
         "reviews": [
             {"id": r.id, "business_id": r.business_id, "notes": r.notes} for r in pending_reviews
         ],
@@ -143,6 +169,7 @@ def moderation_queue(
             {"id": f.id, "target_type": f.target_type, "reason": f.reason} for f in open_flags
         ],
         "pending_claims": [{"id": c.id, "business_id": c.business_id} for c in pending_claims],
+        "evidence": evidence_items,
     }
 
 

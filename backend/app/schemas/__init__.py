@@ -185,6 +185,18 @@ class EvidenceOut(BaseModel):
     created_at: datetime
 
 
+class EvidenceModerationItem(BaseModel):
+    id: int
+    file_url: str
+    mime_type: str
+    verified: bool
+    review_id: int | None
+    business_id: int | None
+    business_name: str | None
+    business_slug: str | None
+    created_at: datetime
+
+
 class ClaimCreate(BaseModel):
     business_id: int
     notes: str | None = None
