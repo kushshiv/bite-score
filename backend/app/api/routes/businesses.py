@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
-from app.config import settings
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.business import Business

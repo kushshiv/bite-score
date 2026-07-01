@@ -8,7 +8,6 @@ from PIL import Image
 from sqlalchemy.orm import joinedload
 
 from app.config import settings
-
 from app.core.security import get_password_hash
 from app.db.migrate import run_migrations
 from app.db.session import SessionLocal

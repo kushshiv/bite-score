@@ -1,5 +1,4 @@
 from app.models.admin_audit import AdminAudit
-from app.models.evidence_upload import EvidenceUpload
 from tests.conftest import auth_header
 
 

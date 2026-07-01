@@ -17,9 +17,9 @@ from app.main import app
 from app.models.business import Business
 from app.models.category import Category
 from app.models.enums import BusinessType, ReviewStatus, UserRole, VisitType
+from app.models.evidence_upload import EvidenceUpload
 from app.models.location import Location
 from app.models.review import Review
-from app.models.evidence_upload import EvidenceUpload
 from app.models.structured_score import StructuredScore
 from app.models.user import User
 
