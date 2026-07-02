@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addPlaceSchema, flagSchema, loginSchema, registerSchema, reviewSchema } from '../utils/schemas'
+import { addPlaceSchema, flagSchema, loginSchema, registerSchema, reviewResponseSchema, reviewSchema } from '../utils/schemas'
 
 describe('loginSchema', () => {
   it('accepts valid credentials', () => {
@@ -77,6 +77,15 @@ describe('flagSchema', () => {
   it('requires at least 10 characters', () => {
     expect(flagSchema.safeParse({ reason: 'too short' }).success).toBe(false)
     expect(flagSchema.safeParse({ reason: 'This is a valid reported concern.' }).success).toBe(true)
+  })
+})
+
+describe('reviewResponseSchema', () => {
+  it('requires at least 10 characters', () => {
+    expect(reviewResponseSchema.safeParse({ response: 'short' }).success).toBe(false)
+    expect(
+      reviewResponseSchema.safeParse({ response: 'Thank you for your community observation.' }).success,
+    ).toBe(true)
   })
 })
 

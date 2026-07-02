@@ -14,9 +14,12 @@ from app.models.user import User
 from app.models.verification_badge import VerificationBadge
 from app.schemas import (
     BadgeAssign,
+    BusinessAccountOut,
     BusinessUpdate,
     ClaimCreate,
+    ClaimedBusinessSummary,
     ClaimOut,
+    ClaimSummary,
     EvidenceModerationItem,
     FlagCreate,
     FlagOut,
@@ -36,11 +39,26 @@ def create_claim(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    if db.query(Business).filter(Business.claimed_by_id == user.id).first():
+        raise HTTPException(status_code=400, detail="You already manage a claimed business")
+
     business = db.query(Business).filter(Business.id == data.business_id).first()
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
     if business.claimed_by_id:
         raise HTTPException(status_code=400, detail="Business already claimed")
+
+    pending = (
+        db.query(ClaimRequest)
+        .filter(
+            ClaimRequest.user_id == user.id,
+            ClaimRequest.business_id == data.business_id,
+            ClaimRequest.status == ClaimStatus.PENDING,
+        )
+        .first()
+    )
+    if pending:
+        raise HTTPException(status_code=400, detail="You already have a pending claim for this business")
 
     claim = ClaimRequest(business_id=data.business_id, user_id=user.id, notes=data.notes)
     db.add(claim)
@@ -52,6 +70,38 @@ def create_claim(
 @router.get("/dashboard/claims", response_model=list[ClaimOut])
 def my_claims(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return db.query(ClaimRequest).filter(ClaimRequest.user_id == user.id).all()
+
+
+@router.get("/business-dashboard/account", response_model=BusinessAccountOut)
+def business_account(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    claimed = db.query(Business).filter(Business.claimed_by_id == user.id).first()
+    claims = (
+        db.query(ClaimRequest)
+        .options(joinedload(ClaimRequest.business))
+        .filter(ClaimRequest.user_id == user.id)
+        .order_by(ClaimRequest.created_at.desc())
+        .all()
+    )
+
+    claimed_business = None
+    if claimed:
+        claimed_business = ClaimedBusinessSummary(id=claimed.id, name=claimed.name, slug=claimed.slug)
+
+    return BusinessAccountOut(
+        claimed_business=claimed_business,
+        claims=[
+            ClaimSummary(
+                id=claim.id,
+                business_id=claim.business_id,
+                business_name=claim.business.name if claim.business else None,
+                business_slug=claim.business.slug if claim.business else None,
+                status=claim.status,
+                notes=claim.notes,
+                created_at=claim.created_at,
+            )
+            for claim in claims
+        ],
+    )
 
 
 @router.get("/business-dashboard/stats")

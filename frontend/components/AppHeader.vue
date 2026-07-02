@@ -8,8 +8,7 @@
 
       <div class="flex items-center gap-2 sm:gap-3">
         <template v-if="auth.isLoggedIn">
-          <NuxtLink v-if="auth.isModerator" to="/admin" class="hidden text-sm text-slate-600 hover:text-slate-900 sm:block">Moderation</NuxtLink>
-          <NuxtLink to="/dashboard" class="hidden text-sm text-slate-600 hover:text-slate-900 sm:block">My reviews</NuxtLink>
+          <AccountLinks />
           <button class="text-sm text-slate-500 hover:text-slate-700" @click="auth.logout()">Logout</button>
         </template>
         <template v-else>

@@ -27,6 +27,10 @@ export const flagSchema = z.object({
   reason: z.string().min(10, 'Please provide at least 10 characters'),
 })
 
+export const reviewResponseSchema = z.object({
+  response: z.string().min(10, 'Response must be at least 10 characters'),
+})
+
 export const addPlaceSchema = z.object({
   name: z.string().min(2, 'Name is required').max(255),
   address: z.string().max(500).optional(),

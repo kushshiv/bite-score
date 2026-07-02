@@ -87,7 +87,18 @@
         <section class="card">
           <h3 class="font-semibold text-slate-900">Share your visit</h3>
           <div class="mt-4 space-y-3">
-            <NuxtLink v-if="auth.isLoggedIn" :to="`/submit-review/${business.id}`" class="btn-primary block w-full text-center">
+            <NuxtLink
+              v-if="ownsThisBusiness"
+              to="/business-dashboard"
+              class="btn-primary block w-full text-center"
+            >
+              Manage your business
+            </NuxtLink>
+            <NuxtLink
+              v-if="auth.isLoggedIn && !ownsThisBusiness"
+              :to="`/submit-review/${business.id}`"
+              class="btn-primary block w-full text-center"
+            >
               Write a review
             </NuxtLink>
             <button v-else class="btn-primary w-full" @click="openAuth('register')">Sign up to review</button>
@@ -159,6 +170,7 @@ const route = useRoute()
 const api = useApi()
 const auth = useAuthStore()
 const { open: openAuth } = useAuthModal()
+const { claimedBusiness } = useBusinessAccount()
 const showFlag = ref(false)
 const flagReason = ref('')
 const verifyingId = ref<number | null>(null)
@@ -173,7 +185,11 @@ const { data: evidence, refresh: refreshEvidence } = await useAsyncData(`evidenc
 )
 
 const verdict = computed(() =>
-  business.value ? useTrustVerdict(business.value.score.overall_percent) : useTrustVerdict(0)
+  business.value ? useTrustVerdict(business.value.score.overall_percent) : useTrustVerdict(0),
+)
+
+const ownsThisBusiness = computed(
+  () => Boolean(business.value && claimedBusiness.value?.id === business.value.id),
 )
 
 useSeoMeta({

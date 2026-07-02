@@ -1,7 +1,10 @@
 <template>
   <div class="mx-auto max-w-4xl px-4 py-10 sm:px-6">
     <h1 class="text-2xl font-bold text-slate-900">My reviews</h1>
-    <p class="mt-2 text-slate-500">Places you've reviewed and their status.</p>
+    <p class="mt-2 text-slate-500">
+      Places you've reviewed and their status.
+      <NuxtLink to="/account" class="text-trust-600 hover:underline">Back to account</NuxtLink>
+    </p>
 
     <div v-if="pending" class="mt-8 text-slate-500">Loading...</div>
     <div v-else-if="!reviews?.length" class="mt-8 card text-center text-slate-500">
