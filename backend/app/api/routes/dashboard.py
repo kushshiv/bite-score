@@ -58,7 +58,9 @@ def create_claim(
         .first()
     )
     if pending:
-        raise HTTPException(status_code=400, detail="You already have a pending claim for this business")
+        raise HTTPException(
+            status_code=400, detail="You already have a pending claim for this business"
+        )
 
     claim = ClaimRequest(business_id=data.business_id, user_id=user.id, notes=data.notes)
     db.add(claim)
@@ -85,7 +87,9 @@ def business_account(db: Session = Depends(get_db), user: User = Depends(get_cur
 
     claimed_business = None
     if claimed:
-        claimed_business = ClaimedBusinessSummary(id=claimed.id, name=claimed.name, slug=claimed.slug)
+        claimed_business = ClaimedBusinessSummary(
+            id=claimed.id, name=claimed.name, slug=claimed.slug
+        )
 
     return BusinessAccountOut(
         claimed_business=claimed_business,
