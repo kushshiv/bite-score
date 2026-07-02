@@ -213,6 +213,27 @@ class ClaimOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ClaimedBusinessSummary(BaseModel):
+    id: int
+    name: str
+    slug: str
+
+
+class ClaimSummary(BaseModel):
+    id: int
+    business_id: int
+    business_name: str | None = None
+    business_slug: str | None = None
+    status: ClaimStatus
+    notes: str | None
+    created_at: datetime
+
+
+class BusinessAccountOut(BaseModel):
+    claimed_business: ClaimedBusinessSummary | None = None
+    claims: list[ClaimSummary] = []
+
+
 class FlagCreate(BaseModel):
     target_type: FlagTargetType
     target_id: int

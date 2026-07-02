@@ -85,6 +85,28 @@ def admin_user(db_session: Session) -> User:
 
 
 @pytest.fixture
+def owner_user(db_session: Session) -> User:
+    user = User(
+        email="owner-test@bitescore.demo",
+        hashed_password=get_password_hash("Test1234!"),
+        full_name="Owner Test",
+        role=UserRole.BUSINESS_OWNER,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def claimed_business(db_session: Session, owner_user: User, sample_business: Business) -> Business:
+    sample_business.claimed_by_id = owner_user.id
+    db_session.commit()
+    db_session.refresh(sample_business)
+    return sample_business
+
+
+@pytest.fixture
 def sample_business(db_session: Session) -> Business:
     category = Category(name="Test Cafe", slug="test-cafe")
     db_session.add(category)

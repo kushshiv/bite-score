@@ -25,9 +25,8 @@
           {{ detecting ? 'Locating…' : 'Near me' }}
         </button>
         <template v-if="auth.isLoggedIn">
-          <NuxtLink v-if="auth.isModerator" to="/admin" class="btn-discover-ghost hidden sm:inline-flex">Moderation</NuxtLink>
+          <AccountLinks link-class="btn-discover-ghost hidden sm:inline-flex" />
           <NuxtLink to="/add-place" class="btn-discover-ghost hidden sm:inline-flex">Add a place</NuxtLink>
-          <NuxtLink to="/dashboard" class="btn-discover-ghost hidden sm:inline-flex">My reviews</NuxtLink>
           <button class="btn-discover-ghost text-xs" @click="auth.logout()">Logout</button>
         </template>
         <template v-else>

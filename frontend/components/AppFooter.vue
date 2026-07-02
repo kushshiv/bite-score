@@ -30,8 +30,8 @@
         <div>
           <h4 class="text-sm font-semibold text-slate-900">Restaurant owners</h4>
           <p class="mt-3 text-sm text-slate-500">
-            <NuxtLink to="/business-dashboard" class="text-trust-600 hover:text-trust-700">Claim your profile</NuxtLink>
-            to respond to reviews.
+            <NuxtLink to="/account" class="text-trust-600 hover:text-trust-700">Business owners</NuxtLink>
+            can claim a profile and respond to reviews.
           </p>
         </div>
       </div>
