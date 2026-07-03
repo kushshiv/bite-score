@@ -115,3 +115,17 @@ class TestCreateClaim:
             json={"business_id": sample_business.id, "notes": "Another claim"},
         )
         assert response.status_code == 400
+
+
+class TestScoreTrend:
+    def test_requires_claimed_business(self, client, test_user):
+        headers = auth_header(client, test_user.email, "Test1234!")
+        response = client.get("/business-dashboard/score-trend", headers=headers)
+        assert response.status_code == 404
+
+    def test_returns_trend_points(self, client, owner_user, claimed_business, sample_review):
+        headers = auth_header(client, owner_user.email, "Test1234!")
+        data = client.get("/business-dashboard/score-trend", headers=headers).json()
+        assert data["weeks"] == 12
+        assert len(data["points"]) >= 1
+        assert data["points"][-1]["review_count"] >= 1

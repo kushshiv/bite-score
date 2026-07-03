@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.business import Business
 from app.models.enums import BadgeType, FlagTargetType, ReviewStatus
@@ -48,6 +48,19 @@ def compute_review_score(score: StructuredScore, has_evidence: bool) -> float:
     return round(max(0, min(5, weighted)), 2)
 
 
+def _aggregate_review_scores(reviews: list[Review]) -> tuple[float, float, int]:
+    review_scores: list[float] = []
+    for review in reviews:
+        if not review.structured_score:
+            continue
+        has_evidence = bool(review.evidence_uploads)
+        review_scores.append(compute_review_score(review.structured_score, has_evidence))
+    if not review_scores:
+        return 0.0, 0.0, 0
+    overall = round(sum(review_scores) / len(review_scores), 2)
+    return overall, _score_to_percent(overall), len(review_scores)
+
+
 def compute_business_score(db: Session, business_id: int) -> dict:
     reviews = (
         db.query(Review)
@@ -90,19 +103,64 @@ def compute_business_score(db: Session, business_id: int) -> dict:
 
     count = len(review_scores) or 1
     breakdown = {k: round(v / count, 2) for k, v in totals.items()}
-    overall = round(sum(review_scores) / len(review_scores), 2) if review_scores else 0
+    overall, overall_percent, _ = _aggregate_review_scores(reviews)
 
     business = db.query(Business).filter(Business.id == business_id).first()
     trust_indicators = compute_trust_indicators(db, business, reviews, review_scores)
 
     return {
         "overall": overall,
-        "overall_percent": _score_to_percent(overall),
+        "overall_percent": overall_percent,
         "review_count": len(reviews),
         "breakdown": breakdown,
         "methodology": METHODOLOGY,
         "trust_indicators": trust_indicators,
     }
+
+
+def compute_business_score_trend(
+    db: Session,
+    business_id: int,
+    *,
+    weeks: int = 12,
+) -> list[dict]:
+    reviews = (
+        db.query(Review)
+        .options(joinedload(Review.structured_score), joinedload(Review.evidence_uploads))
+        .filter(Review.business_id == business_id, Review.status == ReviewStatus.APPROVED)
+        .order_by(Review.visit_date.asc())
+        .all()
+    )
+    if not reviews:
+        return []
+
+    today = date.today()
+    points: list[dict] = []
+    for offset in range(weeks - 1, -1, -1):
+        period_end = today - timedelta(weeks=offset)
+        included = [
+            review
+            for review in reviews
+            if review.visit_date <= period_end and review.structured_score is not None
+        ]
+        if not included:
+            continue
+
+        overall, overall_percent, review_count = _aggregate_review_scores(included)
+        if review_count == 0:
+            continue
+
+        points.append(
+            {
+                "period_end": period_end,
+                "label": period_end.strftime("%b %d"),
+                "overall": overall,
+                "overall_percent": overall_percent,
+                "review_count": review_count,
+            }
+        )
+
+    return points
 
 
 def _as_utc(dt: datetime) -> datetime:
