@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import get_current_user, require_roles
@@ -26,9 +26,10 @@ from app.schemas import (
     ModerationAction,
     ReviewResponseUpdate,
     ScoreBreakdown,
+    ScoreTrendOut,
 )
 from app.services.evidence import evidence_file_url
-from app.services.scoring import compute_business_score
+from app.services.scoring import compute_business_score, compute_business_score_trend
 
 router = APIRouter(tags=["dashboard"])
 
@@ -120,6 +121,20 @@ def business_dashboard_stats(db: Session = Depends(get_db), user: User = Depends
         "score": ScoreBreakdown(**score),
         "total_reviews": reviews,
     }
+
+
+@router.get("/business-dashboard/score-trend", response_model=ScoreTrendOut)
+def business_score_trend(
+    weeks: int = Query(12, ge=4, le=52),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    business = db.query(Business).filter(Business.claimed_by_id == user.id).first()
+    if not business:
+        raise HTTPException(status_code=404, detail="No claimed business found")
+
+    points = compute_business_score_trend(db, business.id, weeks=weeks)
+    return ScoreTrendOut(points=points, weeks=weeks)
 
 
 @router.patch("/business-dashboard/profile")

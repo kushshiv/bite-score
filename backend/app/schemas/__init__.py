@@ -75,6 +75,19 @@ class ScoreBreakdown(BaseModel):
     trust_indicators: list[str]
 
 
+class ScoreTrendPoint(BaseModel):
+    period_end: date
+    label: str
+    overall: float
+    overall_percent: float
+    review_count: int
+
+
+class ScoreTrendOut(BaseModel):
+    points: list[ScoreTrendPoint]
+    weeks: int
+
+
 class BusinessListItem(BaseModel):
     id: int
     name: str

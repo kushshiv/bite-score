@@ -88,15 +88,30 @@
       </div>
 
       <div class="card">
-        <h3 class="font-semibold text-slate-900">Score trend (illustrative)</h3>
-        <div class="mt-4 flex h-32 items-end gap-2">
-          <div
-            v-for="(bar, i) in trendBars"
-            :key="i"
-            class="flex-1 rounded-t bg-trust-500 transition-all"
-            :style="{ height: `${bar}%` }"
-            :title="`Week ${i + 1}`"
-          />
+        <h3 class="font-semibold text-slate-900">Score trend</h3>
+        <p class="mt-1 text-sm text-slate-500">
+          Cumulative trust score by week, based on diner visit dates.
+        </p>
+        <div v-if="trendPending" class="mt-4 text-sm text-slate-500">Loading trend...</div>
+        <p v-else-if="!scoreTrend?.points.length" class="mt-4 text-sm text-slate-500">
+          Not enough review history yet. Trends appear after reviews accumulate over time.
+        </p>
+        <div v-else class="mt-4">
+          <div class="flex h-36 items-end gap-1 sm:gap-2">
+            <div
+              v-for="point in scoreTrend.points"
+              :key="point.period_end"
+              class="flex min-w-0 flex-1 flex-col items-center gap-1"
+            >
+              <span class="text-[10px] font-medium text-slate-500">{{ point.overall_percent }}%</span>
+              <div
+                class="w-full rounded-t bg-trust-500 transition-all"
+                :style="{ height: `${Math.max(8, point.overall_percent)}%` }"
+                :title="`${point.label}: ${point.overall_percent}% (${point.review_count} reviews)`"
+              />
+              <span class="w-full truncate text-center text-[10px] text-slate-400">{{ point.label }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -179,6 +194,19 @@ interface BusinessStats {
   total_reviews: number
 }
 
+interface ScoreTrendPoint {
+  period_end: string
+  label: string
+  overall: number
+  overall_percent: number
+  review_count: number
+}
+
+interface ScoreTrend {
+  points: ScoreTrendPoint[]
+  weeks: number
+}
+
 interface BusinessReview {
   id: number
   user_name: string | null
@@ -214,6 +242,15 @@ const { data: stats, pending: statsPending } = await useAsyncData<BusinessStats 
   { watch: [hasClaimedBusiness] },
 )
 
+const { data: scoreTrend, pending: trendPending } = await useAsyncData<ScoreTrend | null>(
+  'biz-score-trend',
+  () => {
+    if (!hasClaimedBusiness.value) return Promise.resolve(null)
+    return api.get('/business-dashboard/score-trend')
+  },
+  { watch: [hasClaimedBusiness] },
+)
+
 const reviewsSlug = computed(() => stats.value?.business.slug ?? null)
 
 const { data: reviews, pending: reviewsPending, refresh: refreshReviews } = await useAsyncData(
@@ -236,11 +273,6 @@ watch(
   },
   { immediate: true },
 )
-
-const trendBars = computed(() => {
-  const base = stats.value?.score?.overall_percent || 50
-  return Array.from({ length: 8 }, (_, i) => Math.min(100, base - 10 + i * 3 + Math.random() * 5))
-})
 
 async function submitClaim() {
   claimError.value = ''

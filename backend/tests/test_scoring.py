@@ -1,9 +1,14 @@
-from datetime import date
+from datetime import date, timedelta
 
 from app.models.enums import ReviewStatus, VisitType
 from app.models.review import Review
 from app.models.structured_score import StructuredScore
-from app.services.scoring import METHODOLOGY, compute_business_score, compute_review_score
+from app.services.scoring import (
+    METHODOLOGY,
+    compute_business_score,
+    compute_business_score_trend,
+    compute_review_score,
+)
 
 
 def _make_score(**kwargs) -> StructuredScore:
@@ -78,3 +83,40 @@ def test_compute_business_score_multiple_reviews(db_session, sample_business, te
     result = compute_business_score(db_session, sample_business.id)
     assert result["review_count"] == 5
     assert "low_sample_size" not in result["trust_indicators"]
+
+
+def test_compute_business_score_trend_cumulative(db_session, sample_business, test_user):
+    today = date.today()
+    scores = [3.0, 4.0, 5.0]
+    for index, cleanliness in enumerate(scores):
+        review = Review(
+            business_id=sample_business.id,
+            user_id=test_user.id,
+            visit_type=VisitType.DINE_IN,
+            visit_date=today - timedelta(weeks=len(scores) - index),
+            consent_given=True,
+            status=ReviewStatus.APPROVED,
+        )
+        db_session.add(review)
+        db_session.flush()
+        db_session.add(
+            StructuredScore(
+                review_id=review.id,
+                cleanliness=cleanliness,
+                staff_hygiene=4.0,
+                food_handling=4.0,
+                packaging=4.0,
+                water_confidence=4.0,
+            )
+        )
+    db_session.commit()
+
+    trend = compute_business_score_trend(db_session, sample_business.id, weeks=12)
+    assert len(trend) >= 2
+    assert trend[0]["review_count"] < trend[-1]["review_count"]
+    assert trend[-1]["review_count"] == 3
+    assert trend[-1]["overall_percent"] >= trend[0]["overall_percent"]
+
+
+def test_compute_business_score_trend_empty(db_session, sample_business):
+    assert compute_business_score_trend(db_session, sample_business.id) == []
