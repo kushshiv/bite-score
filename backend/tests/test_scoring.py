@@ -120,4 +120,3 @@ def test_compute_business_score_trend_cumulative(db_session, sample_business, te
 
 def test_compute_business_score_trend_empty(db_session, sample_business):
     assert compute_business_score_trend(db_session, sample_business.id) == []
-
