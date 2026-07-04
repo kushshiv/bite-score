@@ -69,7 +69,67 @@ def test_create_review_success(client, test_user, sample_business):
     assert response.status_code == 200
     data = response.json()
     assert data["visit_type"] == "takeaway"
+    assert data["status"] == "pending"
     assert data["structured_score"]["packaging"] == 5.0
+
+
+def test_pending_review_not_public_until_approved(client, test_user, sample_business):
+    headers = auth_header(client, test_user.email, "Test1234!")
+    payload = {
+        "business_id": sample_business.id,
+        "visit_type": "dine_in",
+        "visit_date": "2026-03-01",
+        "notes": "Pending moderation test.",
+        "consent_given": True,
+        "structured_score": {
+            "cleanliness": 4,
+            "staff_hygiene": 4,
+            "food_handling": 4,
+            "packaging": 4,
+            "water_confidence": 4,
+            "oil_freshness_concern": False,
+        },
+    }
+    created = client.post("/reviews", headers=headers, json=payload)
+    assert created.json()["status"] == "pending"
+
+    public = client.get("/businesses/test-kitchen/reviews").json()
+    assert all(review["id"] != created.json()["id"] for review in public)
+
+    score = client.get("/businesses/test-kitchen").json()["score"]
+    assert score["review_count"] == 0
+
+
+def test_moderator_approval_publishes_review(client, test_user, admin_user, sample_business):
+    headers = auth_header(client, test_user.email, "Test1234!")
+    review = client.post(
+        "/reviews",
+        headers=headers,
+        json={
+            "business_id": sample_business.id,
+            "visit_type": "dine_in",
+            "visit_date": "2026-03-02",
+            "consent_given": True,
+            "structured_score": {
+                "cleanliness": 4,
+                "staff_hygiene": 4,
+                "food_handling": 4,
+                "packaging": 4,
+                "water_confidence": 4,
+                "oil_freshness_concern": False,
+            },
+        },
+    ).json()
+
+    mod_headers = auth_header(client, admin_user.email, "Test1234!")
+    client.post(
+        "/admin/moderate",
+        headers=mod_headers,
+        json={"action": "approve", "target_type": "review", "target_id": review["id"]},
+    )
+
+    public = client.get("/businesses/test-kitchen/reviews").json()
+    assert any(item["id"] == review["id"] for item in public)
 
 
 def test_my_reviews(client, test_user, sample_review):

@@ -260,7 +260,7 @@ async function submit() {
       await uploadReviewEvidence(review.id)
     }
 
-    await navigateTo('/dashboard')
+    await navigateTo('/dashboard?submitted=1')
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Submission failed'
   } finally {
