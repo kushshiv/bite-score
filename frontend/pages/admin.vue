@@ -9,9 +9,17 @@
         <h3 class="font-semibold text-slate-900">Pending reviews</h3>
         <p class="mt-2 text-3xl font-bold text-trust-600">{{ queue?.pending_reviews || 0 }}</p>
         <ul class="mt-4 space-y-2 text-sm text-slate-600">
-          <li v-for="r in queue?.reviews" :key="r.id" class="flex justify-between">
-            <span>Review #{{ r.id }}</span>
-            <button class="text-trust-600 hover:underline" @click="moderate('review', r.id, 'approve')">Approve</button>
+          <li v-for="r in queue?.reviews" :key="r.id" class="rounded-lg border border-slate-100 p-3">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <span class="font-medium text-slate-900">Review #{{ r.id }}</span>
+                <span class="ml-2 text-xs text-slate-400">Business #{{ r.business_id }}</span>
+                <p v-if="r.notes" class="mt-1 text-slate-600">{{ r.notes }}</p>
+              </div>
+              <button class="shrink-0 text-trust-600 hover:underline" @click="moderate('review', r.id, 'approve')">
+                Approve
+              </button>
+            </div>
           </li>
         </ul>
       </div>

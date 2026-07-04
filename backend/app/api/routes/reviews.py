@@ -34,7 +34,7 @@ def create_review(
         visit_date=data.visit_date,
         notes=data.notes,
         consent_given=data.consent_given,
-        status=ReviewStatus.APPROVED,
+        status=ReviewStatus.PENDING,
     )
     db.add(review)
     db.flush()
