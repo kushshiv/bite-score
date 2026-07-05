@@ -88,6 +88,71 @@
       </div>
 
       <div class="card">
+        <h3 class="font-semibold text-slate-900">Certifications</h3>
+        <p class="mt-1 text-sm text-slate-500">
+          Upload hygiene or food-safety certificates for moderator verification.
+        </p>
+        <p v-if="certError" class="mt-3 text-sm text-red-600">{{ certError }}</p>
+        <form class="mt-4 space-y-4" @submit.prevent="submitCertification">
+          <div>
+            <label class="label">Certificate title</label>
+            <input
+              v-model="certTitle"
+              class="input"
+              type="text"
+              placeholder="e.g. FSSAI license, health inspection report"
+              required
+            />
+          </div>
+          <div>
+            <label class="label">Document (PDF or image, max 10 MB)</label>
+            <input
+              ref="certFileInput"
+              class="input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              @change="onCertFileChange"
+            />
+          </div>
+          <button class="btn-primary" type="submit" :disabled="certSubmitting || !certFile">
+            {{ certSubmitting ? 'Uploading…' : 'Upload certification' }}
+          </button>
+        </form>
+        <div v-if="certsPending" class="mt-6 text-sm text-slate-500">Loading certifications...</div>
+        <p v-else-if="!certifications?.length" class="mt-6 text-sm text-slate-500">
+          No certifications uploaded yet.
+        </p>
+        <ul v-else class="mt-6 space-y-4">
+          <li
+            v-for="cert in certifications"
+            :key="cert.id"
+            class="flex flex-col gap-2 border-t border-slate-100 pt-4 first:border-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <p class="font-medium text-slate-900">{{ cert.title }}</p>
+              <p class="text-xs text-slate-400">{{ formatCertDate(cert.created_at) }}</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span
+                class="rounded-full px-3 py-1 text-xs font-medium capitalize"
+                :class="certStatusClass(cert.status)"
+              >
+                {{ cert.status }}
+              </span>
+              <a
+                :href="cert.file_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-sm text-trust-600 hover:underline"
+              >
+                View
+              </a>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
         <h3 class="font-semibold text-slate-900">Score trend</h3>
         <p class="mt-1 text-sm text-slate-500">
           Cumulative trust score by week, based on diner visit dates.
@@ -216,7 +281,21 @@ interface BusinessReview {
   business_response: string | null
 }
 
+interface Certification {
+  id: number
+  title: string
+  file_url: string
+  mime_type: string
+  status: 'pending' | 'verified' | 'rejected'
+  created_at: string
+}
+
 const api = useApi()
+const certTitle = ref('')
+const certFile = ref<File | null>(null)
+const certFileInput = ref<HTMLInputElement | null>(null)
+const certError = ref('')
+const certSubmitting = ref(false)
 const claimBusinessId = ref('')
 const claimNotes = ref('')
 const claimError = ref('')
@@ -262,6 +341,16 @@ const { data: reviews, pending: reviewsPending, refresh: refreshReviews } = awai
   { watch: [reviewsSlug] },
 )
 
+const { data: certifications, pending: certsPending, refresh: refreshCertifications } =
+  await useAsyncData(
+    'biz-certifications',
+    () => {
+      if (!hasClaimedBusiness.value) return Promise.resolve([] as Certification[])
+      return api.get<Certification[]>('/business-dashboard/certifications')
+    },
+    { watch: [hasClaimedBusiness] },
+  )
+
 watch(
   reviews,
   (items) => {
@@ -292,6 +381,67 @@ async function submitClaim() {
 async function updateProfile() {
   await api.patch('/business-dashboard/profile', { description: description.value })
   alert('Profile updated.')
+}
+
+function onCertFileChange(event: Event) {
+  certError.value = ''
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] ?? null
+  if (!file) {
+    certFile.value = null
+    return
+  }
+  const validationError = validateCertificationFile(file)
+  if (validationError) {
+    certError.value = validationError
+    certFile.value = null
+    input.value = ''
+    return
+  }
+  certFile.value = file
+}
+
+function certStatusClass(status: Certification['status']) {
+  if (status === 'verified') return 'bg-green-100 text-green-700'
+  if (status === 'rejected') return 'bg-red-100 text-red-700'
+  return 'bg-amber-100 text-amber-700'
+}
+
+function formatCertDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+async function submitCertification() {
+  certError.value = ''
+  const trimmed = certTitle.value.trim()
+  if (trimmed.length < 3) {
+    certError.value = 'Title must be at least 3 characters'
+    return
+  }
+  if (!certFile.value) {
+    certError.value = 'Please choose a file to upload'
+    return
+  }
+
+  certSubmitting.value = true
+  try {
+    const form = new FormData()
+    form.append('title', trimmed)
+    form.append('file', certFile.value)
+    await api.post('/business-dashboard/certifications', form)
+    certTitle.value = ''
+    certFile.value = null
+    if (certFileInput.value) certFileInput.value.value = ''
+    await refreshCertifications()
+  } catch (e: unknown) {
+    certError.value = e instanceof Error ? e.message : 'Could not upload certification'
+  } finally {
+    certSubmitting.value = false
+  }
 }
 
 async function submitResponse(reviewId: number) {

@@ -21,4 +21,7 @@ class User(Base):
 
     reviews: Mapped[list["Review"]] = relationship(back_populates="user")
     claim_requests: Mapped[list["ClaimRequest"]] = relationship(back_populates="user")
+    certification_uploads: Mapped[list["CertificationUpload"]] = relationship(
+        back_populates="uploaded_by"
+    )
     admin_audits: Mapped[list["AdminAudit"]] = relationship(back_populates="actor")

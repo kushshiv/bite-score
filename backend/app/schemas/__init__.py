@@ -6,6 +6,7 @@ from app.models.enums import (
     BadgeType,
     BusinessStatus,
     BusinessType,
+    CertificationStatus,
     ClaimStatus,
     FlagStatus,
     FlagTargetType,
@@ -207,6 +208,27 @@ class EvidenceModerationItem(BaseModel):
     business_id: int | None
     business_name: str | None
     business_slug: str | None
+    created_at: datetime
+
+
+class CertificationOut(BaseModel):
+    id: int
+    title: str
+    file_url: str
+    mime_type: str
+    status: CertificationStatus
+    created_at: datetime
+
+
+class CertificationModerationItem(BaseModel):
+    id: int
+    title: str
+    file_url: str
+    mime_type: str
+    status: CertificationStatus
+    business_id: int
+    business_name: str
+    business_slug: str
     created_at: datetime
 
 

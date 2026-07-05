@@ -1,12 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import get_current_user, require_roles
 from app.db.session import get_db
 from app.models.admin_audit import AdminAudit
 from app.models.business import Business
+from app.models.certification_upload import CertificationUpload
 from app.models.claim_request import ClaimRequest
-from app.models.enums import BadgeType, ClaimStatus, FlagStatus, ReviewStatus, UserRole
+from app.models.enums import (
+    BadgeType,
+    CertificationStatus,
+    ClaimStatus,
+    FlagStatus,
+    ReviewStatus,
+    UserRole,
+)
 from app.models.evidence_upload import EvidenceUpload
 from app.models.report_flag import ReportFlag
 from app.models.review import Review
@@ -16,6 +24,8 @@ from app.schemas import (
     BadgeAssign,
     BusinessAccountOut,
     BusinessUpdate,
+    CertificationModerationItem,
+    CertificationOut,
     ClaimCreate,
     ClaimedBusinessSummary,
     ClaimOut,
@@ -30,8 +40,27 @@ from app.schemas import (
 )
 from app.services.evidence import evidence_file_url
 from app.services.scoring import compute_business_score, compute_business_score_trend
+from app.services.storage import storage_service
 
 router = APIRouter(tags=["dashboard"])
+
+
+def _require_claimed_business(db: Session, user: User) -> Business:
+    business = db.query(Business).filter(Business.claimed_by_id == user.id).first()
+    if not business:
+        raise HTTPException(status_code=404, detail="No claimed business found")
+    return business
+
+
+def _certification_out(cert: CertificationUpload) -> CertificationOut:
+    return CertificationOut(
+        id=cert.id,
+        title=cert.title,
+        file_url=evidence_file_url(cert.file_path),
+        mime_type=cert.mime_type,
+        status=cert.status,
+        created_at=cert.created_at,
+    )
 
 
 @router.post("/claims", response_model=ClaimOut)
@@ -172,6 +201,44 @@ def respond_to_review(
     return {"message": "Response posted"}
 
 
+@router.get("/business-dashboard/certifications", response_model=list[CertificationOut])
+def list_certifications(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    business = _require_claimed_business(db, user)
+    certs = (
+        db.query(CertificationUpload)
+        .filter(CertificationUpload.business_id == business.id)
+        .order_by(CertificationUpload.created_at.desc())
+        .all()
+    )
+    return [_certification_out(cert) for cert in certs]
+
+
+@router.post("/business-dashboard/certifications", response_model=CertificationOut)
+async def upload_certification(
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    business = _require_claimed_business(db, user)
+    trimmed_title = title.strip()
+    if len(trimmed_title) < 3:
+        raise HTTPException(status_code=400, detail="Title must be at least 3 characters")
+
+    file_path, mime_type = await storage_service.save_document(file)
+    cert = CertificationUpload(
+        business_id=business.id,
+        uploaded_by_id=user.id,
+        title=trimmed_title,
+        file_path=file_path,
+        mime_type=mime_type,
+    )
+    db.add(cert)
+    db.commit()
+    db.refresh(cert)
+    return _certification_out(cert)
+
+
 @router.post("/flags", response_model=FlagOut)
 def create_flag(
     data: FlagCreate,
@@ -228,9 +295,32 @@ def moderation_queue(
         )
         for upload in unverified_evidence
     ]
+    pending_certifications = (
+        db.query(CertificationUpload)
+        .options(joinedload(CertificationUpload.business))
+        .filter(CertificationUpload.status == CertificationStatus.PENDING)
+        .order_by(CertificationUpload.created_at.asc())
+        .limit(50)
+        .all()
+    )
+    certification_items = [
+        CertificationModerationItem(
+            id=cert.id,
+            title=cert.title,
+            file_url=evidence_file_url(cert.file_path),
+            mime_type=cert.mime_type,
+            status=cert.status,
+            business_id=cert.business_id,
+            business_name=cert.business.name,
+            business_slug=cert.business.slug,
+            created_at=cert.created_at,
+        )
+        for cert in pending_certifications
+    ]
     return {
         "pending_reviews": len(pending_reviews),
         "pending_evidence": len(evidence_items),
+        "pending_certifications": len(certification_items),
         "reviews": [
             {"id": r.id, "business_id": r.business_id, "notes": r.notes} for r in pending_reviews
         ],
@@ -239,6 +329,7 @@ def moderation_queue(
         ],
         "pending_claims": [{"id": c.id, "business_id": c.business_id} for c in pending_claims],
         "evidence": evidence_items,
+        "certifications": certification_items,
     }
 
 
@@ -277,6 +368,16 @@ def moderate(
         flag = db.query(ReportFlag).filter(ReportFlag.id == data.target_id).first()
         if flag:
             flag.status = FlagStatus.RESOLVED if data.action == "resolve" else FlagStatus.DISMISSED
+
+    elif data.target_type == "certification":
+        cert = (
+            db.query(CertificationUpload).filter(CertificationUpload.id == data.target_id).first()
+        )
+        if cert:
+            if data.action == "approve":
+                cert.status = CertificationStatus.VERIFIED
+            elif data.action == "reject":
+                cert.status = CertificationStatus.REJECTED
 
     audit = AdminAudit(
         actor_id=user.id,
