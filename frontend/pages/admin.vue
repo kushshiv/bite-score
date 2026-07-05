@@ -53,6 +53,64 @@
 
     <div v-if="!pending" class="mt-8 card">
       <div class="flex flex-wrap items-center justify-between gap-2">
+        <h3 class="font-semibold text-slate-900">Certifications to verify</h3>
+        <p class="text-sm text-slate-500">{{ queue?.pending_certifications || 0 }} pending</p>
+      </div>
+      <p v-if="certError" class="mt-3 text-sm text-red-600">{{ certError }}</p>
+      <p v-if="!queue?.certifications?.length" class="mt-4 text-sm text-slate-500">
+        No pending certification uploads right now.
+      </p>
+      <div v-else class="mt-4 space-y-4">
+        <div
+          v-for="item in queue.certifications"
+          :key="item.id"
+          class="rounded-xl border border-slate-200 p-4"
+        >
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p class="font-medium text-slate-900">{{ item.title }}</p>
+              <p class="mt-1 text-sm text-slate-600">
+                <NuxtLink
+                  :to="`/business/${item.business_slug}`"
+                  class="text-trust-600 hover:underline"
+                >
+                  {{ item.business_name }}
+                </NuxtLink>
+              </p>
+              <a
+                :href="item.file_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-2 inline-block text-sm text-trust-600 hover:underline"
+              >
+                View document
+              </a>
+            </div>
+            <div class="flex shrink-0 gap-2">
+              <button
+                class="btn-primary"
+                type="button"
+                :disabled="moderatingCertId === item.id"
+                @click="moderateCertification(item.id, 'approve')"
+              >
+                {{ moderatingCertId === item.id ? 'Saving…' : 'Verify' }}
+              </button>
+              <button
+                class="btn-secondary"
+                type="button"
+                :disabled="moderatingCertId === item.id"
+                @click="moderateCertification(item.id, 'reject')"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="!pending" class="mt-8 card">
+      <div class="flex flex-wrap items-center justify-between gap-2">
         <h3 class="font-semibold text-slate-900">Photo evidence to verify</h3>
         <p class="text-sm text-slate-500">{{ queue?.pending_evidence || 0 }} pending</p>
       </div>
@@ -134,19 +192,35 @@ interface EvidenceModerationItem {
   created_at: string
 }
 
+interface CertificationModerationItem {
+  id: number
+  title: string
+  file_url: string
+  mime_type: string
+  status: string
+  business_id: number
+  business_name: string
+  business_slug: string
+  created_at: string
+}
+
 interface ModerationQueue {
   pending_reviews: number
   pending_evidence: number
+  pending_certifications: number
   reviews: { id: number; business_id: number; notes: string | null }[]
   open_flags: { id: number; target_type: string; reason: string }[]
   pending_claims: { id: number; business_id: number }[]
   evidence: EvidenceModerationItem[]
+  certifications: CertificationModerationItem[]
 }
 
 const api = useApi()
 const aiResult = ref('')
+const certError = ref('')
 const evidenceError = ref('')
 const verifyingId = ref<number | null>(null)
+const moderatingCertId = ref<number | null>(null)
 const badgeForm = reactive({ business_id: '', badge_type: 'verified' })
 
 const { data: queue, pending, refresh } = await useAsyncData<ModerationQueue>(
@@ -157,6 +231,23 @@ const { data: queue, pending, refresh } = await useAsyncData<ModerationQueue>(
 async function moderate(target_type: string, target_id: number, action: string) {
   await api.post('/admin/moderate', { action, target_type, target_id })
   refresh()
+}
+
+async function moderateCertification(certId: number, action: 'approve' | 'reject') {
+  certError.value = ''
+  moderatingCertId.value = certId
+  try {
+    await api.post('/admin/moderate', {
+      action,
+      target_type: 'certification',
+      target_id: certId,
+    })
+    await refresh()
+  } catch (e: unknown) {
+    certError.value = e instanceof Error ? e.message : 'Could not update certification'
+  } finally {
+    moderatingCertId.value = null
+  }
 }
 
 async function verifyEvidence(uploadId: number) {

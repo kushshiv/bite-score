@@ -13,6 +13,7 @@ def test_migrations_create_schema():
         "admin_audits",
         "businesses",
         "categories",
+        "certification_uploads",
         "claim_requests",
         "evidence_uploads",
         "locations",
