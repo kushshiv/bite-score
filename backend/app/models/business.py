@@ -34,4 +34,5 @@ class Business(Base):
     certification_uploads: Mapped[list["CertificationUpload"]] = relationship(
         back_populates="business"
     )
+    badge_requests: Mapped[list["BadgeRequest"]] = relationship(back_populates="business")
     claim_requests: Mapped[list["ClaimRequest"]] = relationship(back_populates="business")

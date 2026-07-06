@@ -11,6 +11,7 @@ def test_migrations_create_schema():
     expected = {
         "alembic_version",
         "admin_audits",
+        "badge_requests",
         "businesses",
         "categories",
         "certification_uploads",

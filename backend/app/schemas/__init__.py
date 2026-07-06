@@ -220,6 +220,11 @@ class CertificationOut(BaseModel):
     created_at: datetime
 
 
+class CertificationListOut(BaseModel):
+    has_verified_badge: bool
+    certifications: list[CertificationOut]
+
+
 class CertificationModerationItem(BaseModel):
     id: int
     title: str
@@ -229,6 +234,37 @@ class CertificationModerationItem(BaseModel):
     business_id: int
     business_name: str
     business_slug: str
+    created_at: datetime
+
+
+class BadgeRequestCreate(BaseModel):
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class BadgeRequestOut(BaseModel):
+    id: int
+    badge_type: BadgeType
+    status: ClaimStatus
+    notes: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class BadgeRequestStatusOut(BaseModel):
+    has_verified_badge: bool
+    requests: list[BadgeRequestOut]
+
+
+class BadgeRequestModerationItem(BaseModel):
+    id: int
+    badge_type: BadgeType
+    status: ClaimStatus
+    notes: str | None
+    business_id: int
+    business_name: str
+    business_slug: str
+    requester_name: str | None
     created_at: datetime
 
 

@@ -83,21 +83,21 @@ class TestBusinessAccount:
 
 
 class TestCreateClaim:
-    def test_blocks_duplicate_pending_claim(self, client, db_session, test_user, sample_business):
+    def test_blocks_duplicate_pending_claim(self, client, db_session, owner_user, sample_business):
         from app.models.claim_request import ClaimRequest
         from app.models.enums import ClaimStatus
 
         db_session.add(
             ClaimRequest(
                 business_id=sample_business.id,
-                user_id=test_user.id,
+                user_id=owner_user.id,
                 status=ClaimStatus.PENDING,
                 notes="First claim",
             )
         )
         db_session.commit()
 
-        headers = auth_header(client, test_user.email, "Test1234!")
+        headers = auth_header(client, owner_user.email, "Test1234!")
         response = client.post(
             "/claims",
             headers=headers,
@@ -115,6 +115,24 @@ class TestCreateClaim:
             json={"business_id": sample_business.id, "notes": "Another claim"},
         )
         assert response.status_code == 400
+
+    def test_blocks_moderator_and_admin_claims(self, client, admin_user, sample_business):
+        headers = auth_header(client, admin_user.email, "Test1234!")
+        response = client.post(
+            "/claims",
+            headers=headers,
+            json={"business_id": sample_business.id, "notes": "Moderator claim attempt"},
+        )
+        assert response.status_code == 403
+
+    def test_blocks_regular_user_claims(self, client, test_user, sample_business):
+        headers = auth_header(client, test_user.email, "Test1234!")
+        response = client.post(
+            "/claims",
+            headers=headers,
+            json={"business_id": sample_business.id, "notes": "Consumer claim attempt"},
+        )
+        assert response.status_code == 403
 
 
 class TestScoreTrend:

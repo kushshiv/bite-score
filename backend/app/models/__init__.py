@@ -1,4 +1,5 @@
 from app.models.admin_audit import AdminAudit
+from app.models.badge_request import BadgeRequest
 from app.models.business import Business
 from app.models.category import Category
 from app.models.certification_upload import CertificationUpload
@@ -13,6 +14,7 @@ from app.models.verification_badge import VerificationBadge
 
 __all__ = [
     "AdminAudit",
+    "BadgeRequest",
     "Business",
     "Category",
     "CertificationUpload",

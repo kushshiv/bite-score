@@ -30,7 +30,16 @@
       </NuxtLink>
 
       <NuxtLink
-        v-else
+        v-else-if="auth.isModerator"
+        to="/admin"
+        class="card block transition hover:border-trust-200"
+      >
+        <h2 class="font-semibold text-slate-900">Moderation</h2>
+        <p class="mt-2 text-sm text-slate-500">Review claims, certifications, flags, and queue items.</p>
+      </NuxtLink>
+
+      <NuxtLink
+        v-else-if="auth.isBusinessOwner"
         to="/business-dashboard#claim"
         class="card block transition hover:border-trust-200"
       >
@@ -45,5 +54,6 @@
 definePageMeta({ middleware: 'auth' })
 useSeoMeta({ title: 'My Account — BiteScore' })
 
+const auth = useAuthStore()
 const { hasClaimedBusiness, claimedBusiness, pendingClaims } = useBusinessAccount()
 </script>
