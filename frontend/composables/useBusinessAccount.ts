@@ -36,11 +36,17 @@ export function useBusinessAccount() {
   const pendingClaims = computed(
     () => account.value?.claims.filter((claim) => claim.status === 'pending') ?? [],
   )
+  const canClaimBusiness = computed(
+    () => auth.isLoggedIn && auth.isBusinessOwner && !auth.isModerator,
+  )
   const showClaimProfileLink = computed(
-    () => auth.isLoggedIn && !hasClaimedBusiness.value && pendingClaims.value.length === 0,
+    () =>
+      canClaimBusiness.value && !hasClaimedBusiness.value && pendingClaims.value.length === 0,
   )
   const showBusinessDashboardLink = computed(
-    () => auth.isLoggedIn && (hasClaimedBusiness.value || pendingClaims.value.length > 0 || auth.isBusinessOwner),
+    () =>
+      auth.isLoggedIn &&
+      (hasClaimedBusiness.value || pendingClaims.value.length > 0 || auth.isBusinessOwner),
   )
 
   return {
@@ -49,6 +55,7 @@ export function useBusinessAccount() {
     refresh,
     hasClaimedBusiness,
     pendingClaims,
+    canClaimBusiness,
     showClaimProfileLink,
     showBusinessDashboardLink,
     claimedBusiness: computed(() => account.value?.claimed_business ?? null),

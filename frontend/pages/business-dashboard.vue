@@ -88,11 +88,32 @@
       </div>
 
       <div class="card">
-        <h3 class="font-semibold text-slate-900">Certifications</h3>
+        <h3 class="font-semibold text-slate-900">Trust verification</h3>
         <p class="mt-1 text-sm text-slate-500">
-          Upload hygiene or food-safety certificates for moderator verification.
+          Upload hygiene or food-safety certificates. A moderator reviews your documents and grants the
+          Verified badge — no separate request needed.
         </p>
+        <div
+          v-if="certData?.has_verified_badge"
+          class="mt-4 rounded-lg border border-trust-200 bg-trust-50 px-4 py-3 text-sm text-trust-800"
+        >
+          Your business displays the Verified badge on its public profile.
+        </div>
+        <div
+          v-else-if="pendingCertificationCount"
+          class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          <p class="font-medium">
+            {{ pendingCertificationCount === 1 ? '1 certificate' : `${pendingCertificationCount} certificates` }}
+            submitted for review
+          </p>
+          <p class="mt-1 text-amber-800">
+            A moderator will review your upload{{ pendingCertificationCount > 1 ? 's' : '' }} and grant the
+            Verified badge if approved. Nothing else is required from you.
+          </p>
+        </div>
         <p v-if="certError" class="mt-3 text-sm text-red-600">{{ certError }}</p>
+        <p v-if="certUploadSuccess" class="mt-3 text-sm text-trust-700">{{ certUploadSuccess }}</p>
         <form class="mt-4 space-y-4" @submit.prevent="submitCertification">
           <div>
             <label class="label">Certificate title</label>
@@ -119,12 +140,12 @@
           </button>
         </form>
         <div v-if="certsPending" class="mt-6 text-sm text-slate-500">Loading certifications...</div>
-        <p v-else-if="!certifications?.length" class="mt-6 text-sm text-slate-500">
+        <p v-else-if="!certificationList.length" class="mt-6 text-sm text-slate-500">
           No certifications uploaded yet.
         </p>
         <ul v-else class="mt-6 space-y-4">
           <li
-            v-for="cert in certifications"
+            v-for="cert in certificationList"
             :key="cert.id"
             class="flex flex-col gap-2 border-t border-slate-100 pt-4 first:border-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between"
           >
@@ -137,7 +158,7 @@
                 class="rounded-full px-3 py-1 text-xs font-medium capitalize"
                 :class="certStatusClass(cert.status)"
               >
-                {{ cert.status }}
+                {{ certStatusLabel(cert.status) }}
               </span>
               <a
                 :href="cert.file_url"
@@ -218,7 +239,7 @@
         </ul>
       </div>
 
-      <div v-if="!pendingClaims.length" id="claim" class="card">
+      <div v-if="!pendingClaims.length && canClaimBusiness" id="claim" class="card">
         <h3 class="font-semibold text-slate-900">Claim a business profile</h3>
         <p class="mt-2 text-sm text-slate-500">
           Find the business on BiteScore first, then enter its ID from the public profile URL or admin list.
@@ -290,11 +311,17 @@ interface Certification {
   created_at: string
 }
 
+interface CertificationData {
+  has_verified_badge: boolean
+  certifications: Certification[]
+}
+
 const api = useApi()
 const certTitle = ref('')
 const certFile = ref<File | null>(null)
 const certFileInput = ref<HTMLInputElement | null>(null)
 const certError = ref('')
+const certUploadSuccess = ref('')
 const certSubmitting = ref(false)
 const claimBusinessId = ref('')
 const claimNotes = ref('')
@@ -305,7 +332,7 @@ const reviewError = ref('')
 const respondingId = ref<number | null>(null)
 const responseDrafts = reactive<Record<number, string>>({})
 
-const { account, pending: accountPending, refresh: refreshAccount, hasClaimedBusiness, pendingClaims } =
+const { account, pending: accountPending, refresh: refreshAccount, hasClaimedBusiness, pendingClaims, canClaimBusiness } =
   useBusinessAccount()
 
 const pastClaims = computed(
@@ -341,15 +368,21 @@ const { data: reviews, pending: reviewsPending, refresh: refreshReviews } = awai
   { watch: [reviewsSlug] },
 )
 
-const { data: certifications, pending: certsPending, refresh: refreshCertifications } =
+const { data: certData, pending: certsPending, refresh: refreshCertifications } =
   await useAsyncData(
     'biz-certifications',
     () => {
-      if (!hasClaimedBusiness.value) return Promise.resolve([] as Certification[])
-      return api.get<Certification[]>('/business-dashboard/certifications')
+      if (!hasClaimedBusiness.value) return Promise.resolve(null)
+      return api.get<CertificationData>('/business-dashboard/certifications')
     },
     { watch: [hasClaimedBusiness] },
   )
+
+const certificationList = computed(() => certData.value?.certifications ?? [])
+
+const pendingCertificationCount = computed(
+  () => certificationList.value.filter((cert) => cert.status === 'pending').length,
+)
 
 watch(
   reviews,
@@ -407,6 +440,12 @@ function certStatusClass(status: Certification['status']) {
   return 'bg-amber-100 text-amber-700'
 }
 
+function certStatusLabel(status: Certification['status']) {
+  if (status === 'pending') return 'Awaiting review'
+  if (status === 'verified') return 'Approved'
+  return 'Rejected'
+}
+
 function formatCertDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, {
     year: 'numeric',
@@ -417,6 +456,7 @@ function formatCertDate(iso: string) {
 
 async function submitCertification() {
   certError.value = ''
+  certUploadSuccess.value = ''
   const trimmed = certTitle.value.trim()
   if (trimmed.length < 3) {
     certError.value = 'Title must be at least 3 characters'
@@ -436,6 +476,8 @@ async function submitCertification() {
     certTitle.value = ''
     certFile.value = null
     if (certFileInput.value) certFileInput.value.value = ''
+    certUploadSuccess.value =
+      'Certificate uploaded. A moderator will review it and grant your Verified badge if approved.'
     await refreshCertifications()
   } catch (e: unknown) {
     certError.value = e instanceof Error ? e.message : 'Could not upload certification'

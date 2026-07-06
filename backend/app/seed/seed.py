@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from PIL import Image
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import Session, joinedload
 
 from app.config import settings
 from app.core.security import get_password_hash
@@ -33,6 +33,13 @@ from app.models.enums import (
 from app.services.covers import cover_for_category
 
 DEMO_PASSWORD = "Demo1234!"
+
+DEMO_ACCOUNTS: list[tuple[str, str, UserRole]] = [
+    ("admin@bitescore.demo", "Admin User", UserRole.ADMIN),
+    ("owner@bitescore.demo", "Business Owner", UserRole.BUSINESS_OWNER),
+    ("user@bitescore.demo", "Demo User", UserRole.USER),
+    ("moderator@bitescore.demo", "Moderator", UserRole.MODERATOR),
+]
 
 CITIES = [
     {"city": "Berlin", "country": "Germany", "lat": 52.52, "lng": 13.405},
@@ -182,11 +189,49 @@ def backfill_cover_images(db):
         print(f"Backfilled cover images for {updated} businesses.")
 
 
+def ensure_demo_accounts(db: Session) -> None:
+    """Create or reset demo logins so local dev credentials always work."""
+    for email, full_name, role in DEMO_ACCOUNTS:
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            user.hashed_password = get_password_hash(DEMO_PASSWORD)
+            user.full_name = full_name
+            user.role = role
+        else:
+            db.add(
+                User(
+                    email=email,
+                    hashed_password=get_password_hash(DEMO_PASSWORD),
+                    full_name=full_name,
+                    role=role,
+                )
+            )
+
+    for i in range(6):
+        email = f"reviewer{i + 1}@bitescore.demo"
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            user.hashed_password = get_password_hash(DEMO_PASSWORD)
+        else:
+            db.add(
+                User(
+                    email=email,
+                    hashed_password=get_password_hash(DEMO_PASSWORD),
+                    full_name=f"Reviewer {i + 1}",
+                    role=UserRole.USER,
+                )
+            )
+
+    db.commit()
+    print(f"Demo accounts ready (password: {DEMO_PASSWORD})")
+
+
 def seed():
     run_migrations()
     db = SessionLocal()
 
     if db.query(User).filter(User.email == "admin@bitescore.demo").first():
+        ensure_demo_accounts(db)
         backfill_coordinates(db)
         backfill_cover_images(db)
         backfill_evidence_uploads(db)
@@ -196,29 +241,12 @@ def seed():
 
     users = [
         User(
-            email="admin@bitescore.demo",
+            email=email,
             hashed_password=get_password_hash(DEMO_PASSWORD),
-            full_name="Admin User",
-            role=UserRole.ADMIN,
-        ),
-        User(
-            email="owner@bitescore.demo",
-            hashed_password=get_password_hash(DEMO_PASSWORD),
-            full_name="Business Owner",
-            role=UserRole.BUSINESS_OWNER,
-        ),
-        User(
-            email="user@bitescore.demo",
-            hashed_password=get_password_hash(DEMO_PASSWORD),
-            full_name="Demo User",
-            role=UserRole.USER,
-        ),
-        User(
-            email="moderator@bitescore.demo",
-            hashed_password=get_password_hash(DEMO_PASSWORD),
-            full_name="Moderator",
-            role=UserRole.MODERATOR,
-        ),
+            full_name=full_name,
+            role=role,
+        )
+        for email, full_name, role in DEMO_ACCOUNTS
     ]
     for i in range(6):
         users.append(
@@ -269,11 +297,6 @@ def seed():
     db.add(
         VerificationBadge(
             business_id=businesses[0].id, badge_type=BadgeType.CLAIMED, issued_by_id=users[0].id
-        )
-    )
-    db.add(
-        VerificationBadge(
-            business_id=businesses[0].id, badge_type=BadgeType.VERIFIED, issued_by_id=users[0].id
         )
     )
     db.add(

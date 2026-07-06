@@ -2,7 +2,7 @@ import io
 
 from PIL import Image
 
-from app.models.enums import CertificationStatus
+from app.models.enums import BadgeType, CertificationStatus
 from tests.conftest import auth_header
 
 
@@ -47,8 +47,8 @@ class TestCertificationUploads:
         assert body["file_url"].endswith(".png")
 
         listed = client.get("/business-dashboard/certifications", headers=headers).json()
-        assert len(listed) == 1
-        assert listed[0]["id"] == body["id"]
+        assert len(listed["certifications"]) == 1
+        assert listed["certifications"][0]["id"] == body["id"]
 
     def test_validates_title(self, client, owner_user, claimed_business):
         headers = auth_header(client, owner_user.email, "Test1234!")
@@ -107,7 +107,11 @@ class TestCertificationModeration:
         assert moderate.status_code == 200
 
         listed = client.get("/business-dashboard/certifications", headers=owner_headers).json()
-        assert listed[0]["status"] == CertificationStatus.VERIFIED.value
+        assert listed["certifications"][0]["status"] == CertificationStatus.VERIFIED.value
+        assert listed["has_verified_badge"] is True
+
+        profile = client.get(f"/businesses/{claimed_business.slug}").json()
+        assert any(b["badge_type"] == BadgeType.VERIFIED.value for b in profile["badges"])
 
     def test_moderator_rejects(self, client, owner_user, claimed_business, admin_user):
         owner_headers = auth_header(client, owner_user.email, "Test1234!")
@@ -126,7 +130,8 @@ class TestCertificationModeration:
         )
 
         listed = client.get("/business-dashboard/certifications", headers=owner_headers).json()
-        assert listed[0]["status"] == CertificationStatus.REJECTED.value
+        assert listed["certifications"][0]["status"] == CertificationStatus.REJECTED.value
+        assert listed["has_verified_badge"] is False
 
         queue = client.get("/admin/moderation-queue", headers=mod_headers).json()
         assert queue["pending_certifications"] == 0

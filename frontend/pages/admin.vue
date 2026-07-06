@@ -56,6 +56,9 @@
         <h3 class="font-semibold text-slate-900">Certifications to verify</h3>
         <p class="text-sm text-slate-500">{{ queue?.pending_certifications || 0 }} pending</p>
       </div>
+      <p class="mt-1 text-sm text-slate-500">
+        Approving a certificate also grants the business the Verified badge on their public profile.
+      </p>
       <p v-if="certError" class="mt-3 text-sm text-red-600">{{ certError }}</p>
       <p v-if="!queue?.certifications?.length" class="mt-4 text-sm text-slate-500">
         No pending certification uploads right now.
@@ -93,7 +96,7 @@
                 :disabled="moderatingCertId === item.id"
                 @click="moderateCertification(item.id, 'approve')"
               >
-                {{ moderatingCertId === item.id ? 'Saving…' : 'Verify' }}
+                {{ moderatingCertId === item.id ? 'Saving…' : 'Verify & grant badge' }}
               </button>
               <button
                 class="btn-secondary"
