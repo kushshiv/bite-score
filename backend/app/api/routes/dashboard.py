@@ -35,6 +35,7 @@ from app.schemas import (
     ClaimCreate,
     ClaimedBusinessSummary,
     ClaimOut,
+    ClaimSearchResult,
     ClaimSummary,
     EvidenceModerationItem,
     FlagCreate,
@@ -44,6 +45,7 @@ from app.schemas import (
     ScoreBreakdown,
     ScoreTrendOut,
 )
+from app.services.business_query import build_business_query
 from app.services.evidence import evidence_file_url
 from app.services.scoring import compute_business_score, compute_business_score_trend
 from app.services.storage import storage_service
@@ -161,6 +163,34 @@ def create_claim(
     db.commit()
     db.refresh(claim)
     return claim
+
+
+@router.get("/business-dashboard/claim-search", response_model=list[ClaimSearchResult])
+def search_businesses_to_claim(
+    q: str = Query(..., min_length=2),
+    city: str | None = None,
+    limit: int = Query(20, le=50),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if user.role != UserRole.BUSINESS_OWNER:
+        raise HTTPException(
+            status_code=403,
+            detail="Only business owner accounts can search to claim",
+        )
+
+    businesses = build_business_query(db, q=q, city=city).limit(limit).all()
+    return [
+        ClaimSearchResult(
+            id=business.id,
+            name=business.name,
+            slug=business.slug,
+            city=business.location.city if business.location else None,
+            category_name=business.category.name if business.category else None,
+            is_claimed=bool(business.claimed_by_id),
+        )
+        for business in businesses
+    ]
 
 
 @router.get("/dashboard/claims", response_model=list[ClaimOut])

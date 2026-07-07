@@ -135,6 +135,74 @@ class TestCreateClaim:
         assert response.status_code == 403
 
 
+class TestClaimSearch:
+    def test_requires_business_owner(self, client, test_user):
+        headers = auth_header(client, test_user.email, "Test1234!")
+        response = client.get("/business-dashboard/claim-search?q=kitchen", headers=headers)
+        assert response.status_code == 403
+
+    def test_requires_min_query_length(self, client, owner_user):
+        headers = auth_header(client, owner_user.email, "Test1234!")
+        response = client.get("/business-dashboard/claim-search?q=a", headers=headers)
+        assert response.status_code == 422
+
+    def test_searches_by_name(self, client, owner_user, sample_business):
+        headers = auth_header(client, owner_user.email, "Test1234!")
+        response = client.get("/business-dashboard/claim-search?q=Test%20Kitchen", headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        match = next(item for item in data if item["slug"] == "test-kitchen")
+        assert match["name"] == "Test Kitchen"
+        assert match["is_claimed"] is False
+
+    def test_marks_claimed_businesses(self, client, owner_user, claimed_business):
+        headers = auth_header(client, owner_user.email, "Test1234!")
+        response = client.get("/business-dashboard/claim-search?q=Test%20Kitchen", headers=headers)
+        assert response.status_code == 200
+        match = next(item for item in response.json() if item["slug"] == "test-kitchen")
+        assert match["is_claimed"] is True
+
+    def test_filters_by_city(self, client, owner_user, db_session, geo_businesses):
+        from app.models.business import Business
+        from app.models.category import Category
+        from app.models.enums import BusinessType
+        from app.models.location import Location
+
+        category = Category(name="Mumbai Cafe", slug="mumbai-cafe")
+        db_session.add(category)
+        db_session.flush()
+        mumbai_business = Business(
+            name="Mumbai Kitchen",
+            slug="mumbai-kitchen",
+            category_id=category.id,
+            business_type=BusinessType.RESTAURANT,
+            description="Mumbai test business",
+        )
+        db_session.add(mumbai_business)
+        db_session.flush()
+        db_session.add(
+            Location(
+                business_id=mumbai_business.id,
+                address="1 Marine Drive",
+                city="Mumbai",
+                country="India",
+                latitude=19.076,
+                longitude=72.877,
+            )
+        )
+        db_session.commit()
+
+        headers = auth_header(client, owner_user.email, "Test1234!")
+        response = client.get(
+            "/business-dashboard/claim-search?q=Kitchen&city=Berlin",
+            headers=headers,
+        )
+        assert response.status_code == 200
+        slugs = {item["slug"] for item in response.json()}
+        assert "near-kitchen" in slugs
+        assert "mumbai-kitchen" not in slugs
+
+
 class TestScoreTrend:
     def test_requires_claimed_business(self, client, test_user):
         headers = auth_header(client, test_user.email, "Test1234!")

@@ -273,6 +273,15 @@ class ClaimCreate(BaseModel):
     notes: str | None = None
 
 
+class ClaimSearchResult(BaseModel):
+    id: int
+    name: str
+    slug: str
+    city: str | None
+    category_name: str | None
+    is_claimed: bool
+
+
 class ClaimOut(BaseModel):
     id: int
     business_id: int
