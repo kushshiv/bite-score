@@ -242,13 +242,82 @@
       <div v-if="!pendingClaims.length && canClaimBusiness" id="claim" class="card">
         <h3 class="font-semibold text-slate-900">Claim a business profile</h3>
         <p class="mt-2 text-sm text-slate-500">
-          Find the business on BiteScore first, then enter its ID from the public profile URL or admin list.
+          Search by business name, select your listing, then submit a claim for moderator review.
         </p>
         <p v-if="claimError" class="mt-3 text-sm text-red-600">{{ claimError }}</p>
         <form class="mt-4 space-y-4" @submit.prevent="submitClaim">
           <div>
-            <label class="label">Business ID to claim</label>
-            <input v-model="claimBusinessId" class="input" type="number" placeholder="e.g. 1" required />
+            <label class="label">Business name</label>
+            <input
+              v-model="claimSearchQuery"
+              class="input"
+              type="search"
+              placeholder="e.g. Green Leaf Kitchen"
+              autocomplete="off"
+            />
+          </div>
+          <div>
+            <label class="label">City (optional)</label>
+            <input
+              v-model="claimSearchCity"
+              class="input"
+              type="text"
+              placeholder="e.g. Berlin"
+              autocomplete="off"
+            />
+          </div>
+          <p v-if="claimSearchError" class="text-sm text-red-600">{{ claimSearchError }}</p>
+          <p v-if="claimSearchPending" class="text-sm text-slate-500">Searching...</p>
+          <p
+            v-else-if="claimSearchQuery.trim().length >= 2 && !claimSearchResults.length"
+            class="text-sm text-slate-500"
+          >
+            No businesses found. Try a different name or city.
+          </p>
+          <ul v-else-if="claimSearchResults.length" class="space-y-2">
+            <li v-for="business in claimSearchResults" :key="business.id">
+              <button
+                type="button"
+                class="w-full rounded-lg border p-3 text-left transition"
+                :class="
+                  selectedClaimBusiness?.id === business.id
+                    ? 'border-trust-500 bg-trust-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                "
+                :disabled="business.is_claimed"
+                @click="selectClaimBusiness(business)"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="font-medium text-slate-900">{{ business.name }}</p>
+                    <p class="mt-1 text-xs text-slate-500">
+                      <span v-if="business.city">{{ business.city }}</span>
+                      <span v-if="business.city && business.category_name"> · </span>
+                      <span v-if="business.category_name">{{ business.category_name }}</span>
+                    </p>
+                  </div>
+                  <span
+                    v-if="business.is_claimed"
+                    class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+                  >
+                    Already claimed
+                  </span>
+                </div>
+              </button>
+            </li>
+          </ul>
+          <div
+            v-if="selectedClaimBusiness"
+            class="rounded-lg border border-trust-200 bg-trust-50 px-4 py-3 text-sm text-trust-900"
+          >
+            Selected:
+            <NuxtLink
+              :to="`/business/${selectedClaimBusiness.slug}`"
+              class="font-medium text-trust-700 hover:underline"
+              target="_blank"
+            >
+              {{ selectedClaimBusiness.name }}
+            </NuxtLink>
           </div>
           <div>
             <label class="label">Notes for moderators</label>
@@ -259,7 +328,11 @@
               placeholder="How can we verify you own or manage this place?"
             />
           </div>
-          <button class="btn-primary" type="submit" :disabled="claimSubmitting">
+          <button
+            class="btn-primary"
+            type="submit"
+            :disabled="claimSubmitting || !selectedClaimBusiness || selectedClaimBusiness.is_claimed"
+          >
             {{ claimSubmitting ? 'Submitting…' : 'Submit claim request' }}
           </button>
         </form>
@@ -316,6 +389,15 @@ interface CertificationData {
   certifications: Certification[]
 }
 
+interface ClaimSearchResult {
+  id: number
+  name: string
+  slug: string
+  city: string | null
+  category_name: string | null
+  is_claimed: boolean
+}
+
 const api = useApi()
 const certTitle = ref('')
 const certFile = ref<File | null>(null)
@@ -323,10 +405,10 @@ const certFileInput = ref<HTMLInputElement | null>(null)
 const certError = ref('')
 const certUploadSuccess = ref('')
 const certSubmitting = ref(false)
-const claimBusinessId = ref('')
 const claimNotes = ref('')
 const claimError = ref('')
 const claimSubmitting = ref(false)
+const selectedClaimBusiness = ref<ClaimSearchResult | null>(null)
 const description = ref('')
 const reviewError = ref('')
 const respondingId = ref<number | null>(null)
@@ -334,6 +416,14 @@ const responseDrafts = reactive<Record<number, string>>({})
 
 const { account, pending: accountPending, refresh: refreshAccount, hasClaimedBusiness, pendingClaims, canClaimBusiness } =
   useBusinessAccount()
+
+const {
+  query: claimSearchQuery,
+  city: claimSearchCity,
+  results: claimSearchResults,
+  searching: claimSearchPending,
+  searchError: claimSearchError,
+} = useBusinessClaimSearch()
 
 const pastClaims = computed(
   () => account.value?.claims.filter((claim) => claim.status !== 'pending') ?? [],
@@ -397,11 +487,20 @@ watch(
 )
 
 async function submitClaim() {
+  if (!selectedClaimBusiness.value || selectedClaimBusiness.value.is_claimed) {
+    claimError.value = 'Please select an unclaimed business'
+    return
+  }
+
   claimError.value = ''
   claimSubmitting.value = true
   try {
-    await api.post('/claims', { business_id: Number(claimBusinessId.value), notes: claimNotes.value })
-    claimBusinessId.value = ''
+    await api.post('/claims', {
+      business_id: selectedClaimBusiness.value.id,
+      notes: claimNotes.value,
+    })
+    selectedClaimBusiness.value = null
+    claimSearchQuery.value = ''
     claimNotes.value = ''
     await refreshAccount()
   } catch (e: unknown) {
@@ -409,6 +508,12 @@ async function submitClaim() {
   } finally {
     claimSubmitting.value = false
   }
+}
+
+function selectClaimBusiness(business: ClaimSearchResult) {
+  if (business.is_claimed) return
+  selectedClaimBusiness.value = business
+  claimError.value = ''
 }
 
 async function updateProfile() {
