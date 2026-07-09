@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.business import Business
-from app.models.enums import BadgeType, ReviewStatus
+from app.models.enums import BadgeType, BusinessStatus, ReviewStatus
 from app.models.evidence_upload import EvidenceUpload
 from app.models.review import Review
 from app.models.user import User
@@ -190,6 +190,8 @@ def get_business(slug: str, db: Session = Depends(get_db)):
     )
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
+    if business.status != BusinessStatus.ACTIVE:
+        raise HTTPException(status_code=404, detail="Business not found")
 
     score_data = compute_business_score(db, business.id)
     base = business_to_list_item(db, business)
@@ -205,7 +207,7 @@ def get_business(slug: str, db: Session = Depends(get_db)):
 @router.get("/{slug}/reviews", response_model=list[ReviewOut])
 def get_business_reviews(slug: str, db: Session = Depends(get_db)):
     business = db.query(Business).filter(Business.slug == slug).first()
-    if not business:
+    if not business or business.status != BusinessStatus.ACTIVE:
         raise HTTPException(status_code=404, detail="Business not found")
 
     reviews = (
@@ -227,7 +229,7 @@ def get_business_reviews(slug: str, db: Session = Depends(get_db)):
 @router.get("/{slug}/evidence", response_model=list[EvidenceOut])
 def get_business_evidence(slug: str, db: Session = Depends(get_db)):
     business = db.query(Business).filter(Business.slug == slug).first()
-    if not business:
+    if not business or business.status != BusinessStatus.ACTIVE:
         raise HTTPException(status_code=404, detail="Business not found")
 
     uploads = (

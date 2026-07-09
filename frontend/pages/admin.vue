@@ -53,6 +53,60 @@
 
     <div v-if="!pending" class="mt-8 card">
       <div class="flex flex-wrap items-center justify-between gap-2">
+        <h3 class="font-semibold text-slate-900">Consumer-added places</h3>
+        <p class="text-sm text-slate-500">{{ queue?.pending_businesses || 0 }} pending</p>
+      </div>
+      <p class="mt-1 text-sm text-slate-500">
+        Approve new community listings before they appear on discover and public profiles.
+      </p>
+      <p v-if="businessError" class="mt-3 text-sm text-red-600">{{ businessError }}</p>
+      <p v-if="!queue?.businesses?.length" class="mt-4 text-sm text-slate-500">
+        No pending place submissions right now.
+      </p>
+      <div v-else class="mt-4 space-y-4">
+        <div
+          v-for="item in queue.businesses"
+          :key="item.id"
+          class="rounded-xl border border-slate-200 p-4"
+        >
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p class="font-medium text-slate-900">{{ item.name }}</p>
+              <p class="mt-1 text-sm text-slate-600">
+                <span v-if="item.city">{{ item.city }}</span>
+                <span v-if="item.city && item.category_name"> · </span>
+                <span v-if="item.category_name">{{ item.category_name }}</span>
+                <span v-if="item.business_type" class="capitalize">
+                  · {{ item.business_type.replace('_', ' ') }}
+                </span>
+              </p>
+              <p v-if="item.description" class="mt-2 text-sm text-slate-600">{{ item.description }}</p>
+            </div>
+            <div class="flex shrink-0 gap-2">
+              <button
+                class="btn-primary"
+                type="button"
+                :disabled="moderatingBusinessId === item.id"
+                @click="moderateBusiness(item.id, 'approve')"
+              >
+                {{ moderatingBusinessId === item.id ? 'Saving…' : 'Approve' }}
+              </button>
+              <button
+                class="btn-secondary"
+                type="button"
+                :disabled="moderatingBusinessId === item.id"
+                @click="moderateBusiness(item.id, 'reject')"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="!pending" class="mt-8 card">
+      <div class="flex flex-wrap items-center justify-between gap-2">
         <h3 class="font-semibold text-slate-900">Certifications to verify</h3>
         <p class="text-sm text-slate-500">{{ queue?.pending_certifications || 0 }} pending</p>
       </div>
@@ -211,19 +265,34 @@ interface ModerationQueue {
   pending_reviews: number
   pending_evidence: number
   pending_certifications: number
+  pending_businesses: number
   reviews: { id: number; business_id: number; notes: string | null }[]
   open_flags: { id: number; target_type: string; reason: string }[]
   pending_claims: { id: number; business_id: number }[]
   evidence: EvidenceModerationItem[]
   certifications: CertificationModerationItem[]
+  businesses: BusinessModerationItem[]
+}
+
+interface BusinessModerationItem {
+  id: number
+  name: string
+  slug: string
+  city: string | null
+  category_name: string | null
+  business_type: string
+  description: string | null
+  created_at: string
 }
 
 const api = useApi()
 const aiResult = ref('')
+const businessError = ref('')
 const certError = ref('')
 const evidenceError = ref('')
 const verifyingId = ref<number | null>(null)
 const moderatingCertId = ref<number | null>(null)
+const moderatingBusinessId = ref<number | null>(null)
 const badgeForm = reactive({ business_id: '', badge_type: 'verified' })
 
 const { data: queue, pending, refresh } = await useAsyncData<ModerationQueue>(
@@ -250,6 +319,23 @@ async function moderateCertification(certId: number, action: 'approve' | 'reject
     certError.value = e instanceof Error ? e.message : 'Could not update certification'
   } finally {
     moderatingCertId.value = null
+  }
+}
+
+async function moderateBusiness(businessId: number, action: 'approve' | 'reject') {
+  businessError.value = ''
+  moderatingBusinessId.value = businessId
+  try {
+    await api.post('/admin/moderate', {
+      action,
+      target_type: 'business',
+      target_id: businessId,
+    })
+    await refresh()
+  } catch (e: unknown) {
+    businessError.value = e instanceof Error ? e.message : 'Could not update place'
+  } finally {
+    moderatingBusinessId.value = null
   }
 }
 

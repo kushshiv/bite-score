@@ -5,6 +5,7 @@
     <h1 class="mt-4 text-2xl font-bold text-discover-fg">Add a missing place</h1>
     <p class="mt-2 text-sm text-discover-muted">
       Can't find a restaurant or vendor? Add it so you and others can leave hygiene observations.
+      New listings are reviewed by a moderator before they appear publicly.
     </p>
 
     <form
@@ -110,7 +111,7 @@
             ? 'Adding place…'
             : duplicateConflict?.allow_confirm && confirmSimilar
               ? 'Add anyway for review'
-              : 'Add place & write a review'
+              : 'Add place for review'
         }}
       </button>
     </form>
@@ -214,8 +215,8 @@ async function submit() {
       payload.acknowledge_similar = true
     }
 
-    const business = await api.post<{ id: number; slug: string }>('/businesses', payload)
-    await navigateTo(`/submit-review/${business.id}`)
+    const business = await api.post<{ id: number; slug: string; status: string }>('/businesses', payload)
+    await navigateTo(`/submit-review/${business.id}?place_pending=1`)
   } catch (e: unknown) {
     if (e instanceof ApiError && e.status === 409 && isDuplicateDetail(e.detail)) {
       duplicateConflict.value = e.detail
