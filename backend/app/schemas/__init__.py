@@ -268,6 +268,17 @@ class BadgeRequestModerationItem(BaseModel):
     created_at: datetime
 
 
+class BusinessModerationItem(BaseModel):
+    id: int
+    name: str
+    slug: str
+    city: str | None
+    category_name: str | None
+    business_type: BusinessType
+    description: str | None
+    created_at: datetime
+
+
 class ClaimCreate(BaseModel):
     business_id: int
     notes: str | None = None

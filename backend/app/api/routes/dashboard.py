@@ -10,6 +10,7 @@ from app.models.certification_upload import CertificationUpload
 from app.models.claim_request import ClaimRequest
 from app.models.enums import (
     BadgeType,
+    BusinessStatus,
     CertificationStatus,
     ClaimStatus,
     FlagStatus,
@@ -28,6 +29,7 @@ from app.schemas import (
     BadgeRequestOut,
     BadgeRequestStatusOut,
     BusinessAccountOut,
+    BusinessModerationItem,
     BusinessUpdate,
     CertificationListOut,
     CertificationModerationItem,
@@ -490,11 +492,33 @@ def moderation_queue(
         )
         for req in pending_badge_requests
     ]
+    pending_businesses = (
+        db.query(Business)
+        .options(joinedload(Business.category), joinedload(Business.location))
+        .filter(Business.status == BusinessStatus.UNDER_REVIEW)
+        .order_by(Business.created_at.asc())
+        .limit(50)
+        .all()
+    )
+    business_items = [
+        BusinessModerationItem(
+            id=business.id,
+            name=business.name,
+            slug=business.slug,
+            city=business.location.city if business.location else None,
+            category_name=business.category.name if business.category else None,
+            business_type=business.business_type,
+            description=business.description,
+            created_at=business.created_at,
+        )
+        for business in pending_businesses
+    ]
     return {
         "pending_reviews": len(pending_reviews),
         "pending_evidence": len(evidence_items),
         "pending_certifications": len(certification_items),
         "pending_badge_requests": len(badge_request_items),
+        "pending_businesses": len(business_items),
         "reviews": [
             {"id": r.id, "business_id": r.business_id, "notes": r.notes} for r in pending_reviews
         ],
@@ -505,6 +529,7 @@ def moderation_queue(
         "evidence": evidence_items,
         "certifications": certification_items,
         "badge_requests": badge_request_items,
+        "businesses": business_items,
     }
 
 
@@ -568,6 +593,14 @@ def moderate(
                 )
             elif data.action == "reject":
                 badge_request.status = ClaimStatus.REJECTED
+
+    elif data.target_type == "business":
+        business = db.query(Business).filter(Business.id == data.target_id).first()
+        if business:
+            if data.action == "approve":
+                business.status = BusinessStatus.ACTIVE
+            elif data.action == "reject":
+                business.status = BusinessStatus.HIDDEN
 
     audit = AdminAudit(
         actor_id=user.id,

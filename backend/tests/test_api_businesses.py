@@ -247,7 +247,7 @@ class TestCreateBusiness:
         assert data["location"]["address"] == "Main St 1"
         assert data["location"]["latitude"] == 52.53
         assert data["cover_image_url"] is not None
-        assert data["status"] == "active"
+        assert data["status"] == "under_review"
 
     def test_unique_slug_when_names_differ(self, client, test_user, sample_business):
         headers = auth_header(client, test_user.email, "Test1234!")
@@ -327,7 +327,7 @@ class TestCreateBusiness:
 
     def test_under_review_hidden_from_list(self, client, test_user, sample_business):
         headers = auth_header(client, test_user.email, "Test1234!")
-        client.post(
+        created = client.post(
             "/businesses",
             headers=headers,
             json={
@@ -338,9 +338,14 @@ class TestCreateBusiness:
                 "acknowledge_similar": True,
             },
         )
-        listed = client.get("/businesses", params={"city": "Berlin", "q": "Test Kitchen"}).json()
-        assert len(listed) == 1
-        assert listed[0]["slug"] == "test-kitchen"
+        assert created.status_code == 201
+        new_slug = created.json()["slug"]
+
+        listed = client.get("/businesses", params={"city": "Berlin", "q": "The Test Kitchen"}).json()
+        assert all(item["slug"] != new_slug for item in listed)
+
+        public = client.get(f"/businesses/{new_slug}")
+        assert public.status_code == 404
 
     def test_unknown_category(self, client, test_user, sample_business):
         headers = auth_header(client, test_user.email, "Test1234!")
@@ -355,6 +360,89 @@ class TestCreateBusiness:
             },
         )
         assert response.status_code == 400
+
+
+class TestBusinessModeration:
+    def test_pending_in_queue(self, client, test_user, admin_user, sample_business):
+        headers = auth_header(client, test_user.email, "Test1234!")
+        created = client.post(
+            "/businesses",
+            headers=headers,
+            json={
+                "name": "Pending Noodle Bar",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "test-cafe",
+            },
+        )
+        assert created.status_code == 201
+        business_id = created.json()["id"]
+
+        admin_headers = auth_header(client, admin_user.email, "Test1234!")
+        queue = client.get("/admin/moderation-queue", headers=admin_headers).json()
+        assert queue["pending_businesses"] >= 1
+        assert any(item["id"] == business_id for item in queue["businesses"])
+
+    def test_approve_makes_place_public(self, client, test_user, admin_user, sample_business):
+        user_headers = auth_header(client, test_user.email, "Test1234!")
+        created = client.post(
+            "/businesses",
+            headers=user_headers,
+            json={
+                "name": "Approve Me Cafe",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "test-cafe",
+            },
+        )
+        assert created.status_code == 201
+        body = created.json()
+        slug = body["slug"]
+        business_id = body["id"]
+
+        assert client.get(f"/businesses/{slug}").status_code == 404
+
+        admin_headers = auth_header(client, admin_user.email, "Test1234!")
+        client.post(
+            "/admin/moderate",
+            headers=admin_headers,
+            json={"action": "approve", "target_type": "business", "target_id": business_id},
+        )
+
+        public = client.get(f"/businesses/{slug}").json()
+        assert public["name"] == "Approve Me Cafe"
+        assert public["status"] == "active"
+
+        listed = client.get("/businesses", params={"city": "Berlin", "q": "Approve Me Cafe"}).json()
+        assert any(item["slug"] == slug for item in listed)
+
+    def test_reject_hides_place(self, client, test_user, admin_user, sample_business):
+        user_headers = auth_header(client, test_user.email, "Test1234!")
+        created = client.post(
+            "/businesses",
+            headers=user_headers,
+            json={
+                "name": "Reject Me Spot",
+                "city": "Berlin",
+                "country": "Germany",
+                "category": "test-cafe",
+            },
+        )
+        assert created.status_code == 201
+        body = created.json()
+        business_id = body["id"]
+        slug = body["slug"]
+
+        admin_headers = auth_header(client, admin_user.email, "Test1234!")
+        client.post(
+            "/admin/moderate",
+            headers=admin_headers,
+            json={"action": "reject", "target_type": "business", "target_id": business_id},
+        )
+
+        assert client.get(f"/businesses/{slug}").status_code == 404
+        queue = client.get("/admin/moderation-queue", headers=admin_headers).json()
+        assert all(item["id"] != business_id for item in queue["businesses"])
 
 
 class TestBusinessDetail:

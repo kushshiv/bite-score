@@ -5,6 +5,14 @@
       Focus on hygiene, food handling, and safety — not taste opinions. Use neutral, factual language.
     </p>
 
+    <div
+      v-if="route.query.place_pending === '1'"
+      class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+    >
+      Thanks for adding this place. A moderator will review it before it appears on discover.
+      You can still submit your observation now — it will be published after the place is approved.
+    </div>
+
     <form class="mt-8 space-y-6" @submit.prevent="submit">
       <div class="card space-y-4">
         <div>

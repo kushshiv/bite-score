@@ -39,9 +39,7 @@ def create_business(
     if not category:
         raise HTTPException(status_code=400, detail=f"Unknown category: {data.category}")
 
-    status = BusinessStatus.ACTIVE
-    if duplicate_check and duplicate_check.requires_acknowledgement and data.acknowledge_similar:
-        status = BusinessStatus.UNDER_REVIEW
+    status = BusinessStatus.UNDER_REVIEW
 
     slug = unique_slug(db, slugify(data.name))
     business = Business(
