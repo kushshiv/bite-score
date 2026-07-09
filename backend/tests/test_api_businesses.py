@@ -341,7 +341,9 @@ class TestCreateBusiness:
         assert created.status_code == 201
         new_slug = created.json()["slug"]
 
-        listed = client.get("/businesses", params={"city": "Berlin", "q": "The Test Kitchen"}).json()
+        listed = client.get(
+            "/businesses", params={"city": "Berlin", "q": "The Test Kitchen"}
+        ).json()
         assert all(item["slug"] != new_slug for item in listed)
 
         public = client.get(f"/businesses/{new_slug}")
