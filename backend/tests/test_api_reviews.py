@@ -101,7 +101,9 @@ def test_pending_review_not_public_until_approved(client, test_user, sample_busi
 
 
 class TestModerationQueueReviews:
-    def test_newly_submitted_review_appears_in_queue(self, client, test_user, admin_user, sample_business):
+    def test_newly_submitted_review_appears_in_queue(
+        self, client, test_user, admin_user, sample_business
+    ):
         user_headers = auth_header(client, test_user.email, "Test1234!")
         review = client.post(
             "/reviews",
@@ -136,7 +138,9 @@ class TestModerationQueueReviews:
         assert item["oil_freshness_concern"] is True
         assert item["created_at"]
 
-    def test_approved_review_removed_from_queue(self, client, test_user, admin_user, sample_business):
+    def test_approved_review_removed_from_queue(
+        self, client, test_user, admin_user, sample_business
+    ):
         user_headers = auth_header(client, test_user.email, "Test1234!")
         review = client.post(
             "/reviews",
