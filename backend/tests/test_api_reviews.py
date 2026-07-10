@@ -100,6 +100,75 @@ def test_pending_review_not_public_until_approved(client, test_user, sample_busi
     assert score["review_count"] == 0
 
 
+class TestModerationQueueReviews:
+    def test_newly_submitted_review_appears_in_queue(self, client, test_user, admin_user, sample_business):
+        user_headers = auth_header(client, test_user.email, "Test1234!")
+        review = client.post(
+            "/reviews",
+            headers=user_headers,
+            json={
+                "business_id": sample_business.id,
+                "visit_type": "dine_in",
+                "visit_date": "2026-03-05",
+                "notes": "Needs moderator review.",
+                "consent_given": True,
+                "structured_score": {
+                    "cleanliness": 4,
+                    "staff_hygiene": 4,
+                    "food_handling": 4,
+                    "packaging": 4,
+                    "water_confidence": 4,
+                    "oil_freshness_concern": True,
+                },
+            },
+        ).json()
+
+        mod_headers = auth_header(client, admin_user.email, "Test1234!")
+        queue = client.get("/admin/moderation-queue", headers=mod_headers).json()
+
+        assert queue["pending_reviews"] == 1
+        assert len(queue["reviews"]) == 1
+        item = queue["reviews"][0]
+        assert item["id"] == review["id"]
+        assert item["business_slug"] == "test-kitchen"
+        assert item["business_name"] == sample_business.name
+        assert item["notes"] == "Needs moderator review."
+        assert item["oil_freshness_concern"] is True
+        assert item["created_at"]
+
+    def test_approved_review_removed_from_queue(self, client, test_user, admin_user, sample_business):
+        user_headers = auth_header(client, test_user.email, "Test1234!")
+        review = client.post(
+            "/reviews",
+            headers=user_headers,
+            json={
+                "business_id": sample_business.id,
+                "visit_type": "takeaway",
+                "visit_date": "2026-03-06",
+                "consent_given": True,
+                "structured_score": {
+                    "cleanliness": 4,
+                    "staff_hygiene": 4,
+                    "food_handling": 4,
+                    "packaging": 4,
+                    "water_confidence": 4,
+                    "oil_freshness_concern": False,
+                },
+            },
+        ).json()
+
+        mod_headers = auth_header(client, admin_user.email, "Test1234!")
+        client.post(
+            "/admin/moderate",
+            headers=mod_headers,
+            json={"action": "approve", "target_type": "review", "target_id": review["id"]},
+        )
+
+        queue = client.get("/admin/moderation-queue", headers=mod_headers).json()
+        assert queue["pending_reviews"] == 0
+        assert queue["reviews"] == []
+
+
 def test_moderator_approval_publishes_review(client, test_user, admin_user, sample_business):
     headers = auth_header(client, test_user.email, "Test1234!")
     review = client.post(

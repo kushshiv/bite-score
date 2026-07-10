@@ -199,6 +199,19 @@ class EvidenceOut(BaseModel):
     created_at: datetime
 
 
+class ReviewModerationItem(BaseModel):
+    id: int
+    business_id: int
+    business_name: str
+    business_slug: str
+    visit_type: VisitType
+    visit_date: date
+    notes: str | None
+    reviewer_name: str | None
+    oil_freshness_concern: bool
+    created_at: datetime
+
+
 class EvidenceModerationItem(BaseModel):
     id: int
     file_url: str

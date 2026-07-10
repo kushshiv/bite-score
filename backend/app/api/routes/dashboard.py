@@ -43,6 +43,7 @@ from app.schemas import (
     FlagCreate,
     FlagOut,
     ModerationAction,
+    ReviewModerationItem,
     ReviewResponseUpdate,
     ScoreBreakdown,
     ScoreTrendOut,
@@ -414,8 +415,13 @@ def moderation_queue(
 ):
     pending_reviews = (
         db.query(Review)
-        .options(joinedload(Review.structured_score), joinedload(Review.user))
+        .options(
+            joinedload(Review.structured_score),
+            joinedload(Review.user),
+            joinedload(Review.business),
+        )
         .filter(Review.status == ReviewStatus.PENDING)
+        .order_by(Review.created_at.desc())
         .limit(50)
         .all()
     )
@@ -513,15 +519,30 @@ def moderation_queue(
         )
         for business in pending_businesses
     ]
+    review_items = [
+        ReviewModerationItem(
+            id=review.id,
+            business_id=review.business_id,
+            business_name=review.business.name,
+            business_slug=review.business.slug,
+            visit_type=review.visit_type,
+            visit_date=review.visit_date,
+            notes=review.notes,
+            reviewer_name=review.user.full_name,
+            oil_freshness_concern=(
+                review.structured_score.oil_freshness_concern if review.structured_score else False
+            ),
+            created_at=review.created_at,
+        )
+        for review in pending_reviews
+    ]
     return {
-        "pending_reviews": len(pending_reviews),
+        "pending_reviews": len(review_items),
         "pending_evidence": len(evidence_items),
         "pending_certifications": len(certification_items),
         "pending_badge_requests": len(badge_request_items),
         "pending_businesses": len(business_items),
-        "reviews": [
-            {"id": r.id, "business_id": r.business_id, "notes": r.notes} for r in pending_reviews
-        ],
+        "reviews": review_items,
         "open_flags": [
             {"id": f.id, "target_type": f.target_type, "reason": f.reason} for f in open_flags
         ],

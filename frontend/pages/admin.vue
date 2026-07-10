@@ -4,26 +4,77 @@
     <p class="mt-2 text-slate-500">Review queue, flag handling, claim approvals, evidence verification, and badge assignment.</p>
 
     <div v-if="pending" class="mt-8 text-slate-500">Loading...</div>
-    <div v-else class="mt-8 grid gap-6 lg:grid-cols-3">
-      <div class="card">
+    <div v-else class="mt-8 card">
+      <div class="flex flex-wrap items-center justify-between gap-2">
         <h3 class="font-semibold text-slate-900">Pending reviews</h3>
-        <p class="mt-2 text-3xl font-bold text-trust-600">{{ queue?.pending_reviews || 0 }}</p>
-        <ul class="mt-4 space-y-2 text-sm text-slate-600">
-          <li v-for="r in queue?.reviews" :key="r.id" class="rounded-lg border border-slate-100 p-3">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <span class="font-medium text-slate-900">Review #{{ r.id }}</span>
-                <span class="ml-2 text-xs text-slate-400">Business #{{ r.business_id }}</span>
-                <p v-if="r.notes" class="mt-1 text-slate-600">{{ r.notes }}</p>
-              </div>
-              <button class="shrink-0 text-trust-600 hover:underline" @click="moderate('review', r.id, 'approve')">
-                Approve
+        <p class="text-sm text-slate-500">{{ queue?.pending_reviews || 0 }} awaiting approval</p>
+      </div>
+      <p class="mt-1 text-sm text-slate-500">
+        Newly submitted reviews appear here automatically, newest first.
+      </p>
+      <p v-if="reviewError" class="mt-3 text-sm text-red-600">{{ reviewError }}</p>
+      <p v-if="!queue?.reviews?.length" class="mt-4 text-sm text-slate-500">
+        No pending reviews right now.
+      </p>
+      <div v-else class="mt-4 space-y-4">
+        <div
+          v-for="r in queue.reviews"
+          :key="r.id"
+          class="rounded-xl border border-slate-200 p-4"
+        >
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p class="font-medium text-slate-900">
+                <NuxtLink
+                  :to="`/business/${r.business_slug}`"
+                  class="text-trust-600 hover:underline"
+                >
+                  {{ r.business_name }}
+                </NuxtLink>
+              </p>
+              <p class="mt-1 text-sm text-slate-600">
+                Submitted {{ formatSubmittedAt(r.created_at) }}
+                <span v-if="r.reviewer_name"> · {{ r.reviewer_name }}</span>
+                · {{ formatVisitType(r.visit_type) }}
+                · Visit {{ formatVisitDate(r.visit_date) }}
+              </p>
+              <p v-if="r.notes" class="mt-2 text-sm text-slate-600">{{ r.notes }}</p>
+              <p v-if="r.oil_freshness_concern" class="mt-2 text-xs font-medium text-amber-700">
+                Oil freshness concern flagged
+              </p>
+            </div>
+            <div class="flex shrink-0 flex-wrap gap-2">
+              <button
+                class="btn-primary"
+                type="button"
+                :disabled="moderatingReviewId === r.id"
+                @click="moderateReview(r.id, 'approve')"
+              >
+                {{ moderatingReviewId === r.id ? 'Saving…' : 'Approve' }}
+              </button>
+              <button
+                class="btn-secondary"
+                type="button"
+                :disabled="moderatingReviewId === r.id"
+                @click="moderateReview(r.id, 'hide')"
+              >
+                Hide
+              </button>
+              <button
+                class="text-sm text-slate-500 hover:underline"
+                type="button"
+                :disabled="moderatingReviewId === r.id"
+                @click="moderateReview(r.id, 'flag')"
+              >
+                Flag
               </button>
             </div>
-          </li>
-        </ul>
+          </div>
+        </div>
       </div>
+    </div>
 
+    <div v-if="!pending" class="mt-8 grid gap-6 lg:grid-cols-3">
       <div class="card">
         <h3 class="font-semibold text-slate-900">Open flags</h3>
         <ul class="mt-4 space-y-3 text-sm">
@@ -237,6 +288,19 @@
 definePageMeta({ middleware: 'admin' })
 useSeoMeta({ title: 'Admin — BiteScore' })
 
+interface ReviewModerationItem {
+  id: number
+  business_id: number
+  business_name: string
+  business_slug: string
+  visit_type: string
+  visit_date: string
+  notes: string | null
+  reviewer_name: string | null
+  oil_freshness_concern: boolean
+  created_at: string
+}
+
 interface EvidenceModerationItem {
   id: number
   file_url: string
@@ -266,7 +330,7 @@ interface ModerationQueue {
   pending_evidence: number
   pending_certifications: number
   pending_businesses: number
-  reviews: { id: number; business_id: number; notes: string | null }[]
+  reviews: ReviewModerationItem[]
   open_flags: { id: number; target_type: string; reason: string }[]
   pending_claims: { id: number; business_id: number }[]
   evidence: EvidenceModerationItem[]
@@ -287,10 +351,12 @@ interface BusinessModerationItem {
 
 const api = useApi()
 const aiResult = ref('')
+const reviewError = ref('')
 const businessError = ref('')
 const certError = ref('')
 const evidenceError = ref('')
 const verifyingId = ref<number | null>(null)
+const moderatingReviewId = ref<number | null>(null)
 const moderatingCertId = ref<number | null>(null)
 const moderatingBusinessId = ref<number | null>(null)
 const badgeForm = reactive({ business_id: '', badge_type: 'verified' })
@@ -299,6 +365,23 @@ const { data: queue, pending, refresh } = await useAsyncData<ModerationQueue>(
   'mod-queue',
   () => api.get('/admin/moderation-queue'),
 )
+
+async function moderateReview(reviewId: number, action: 'approve' | 'hide' | 'flag') {
+  reviewError.value = ''
+  moderatingReviewId.value = reviewId
+  try {
+    await api.post('/admin/moderate', {
+      action,
+      target_type: 'review',
+      target_id: reviewId,
+    })
+    await refresh()
+  } catch (e: unknown) {
+    reviewError.value = e instanceof Error ? e.message : 'Could not update review'
+  } finally {
+    moderatingReviewId.value = null
+  }
+}
 
 async function moderate(target_type: string, target_id: number, action: string) {
   await api.post('/admin/moderate', { action, target_type, target_id })
@@ -362,5 +445,20 @@ async function assignBadge() {
 
 function runAiStub() {
   aiResult.value = 'Risk scan complete. 2 items flagged for manual review (stub — no AI connected in MVP).'
+}
+
+function formatSubmittedAt(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
+function formatVisitDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
+}
+
+function formatVisitType(value: string) {
+  return value.replace('_', ' ')
 }
 </script>
